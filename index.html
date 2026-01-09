@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Cuban-Store</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --secondary: #f8fafc;
+      --accent: #22c55e;
+      --text: #1e293b;
+      --shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    body { 
+      font-family: 'Inter', system-ui, sans-serif; 
+      margin: 0; background: #f1f5f9; color: var(--text); 
+      overflow-x: hidden;
+    }
+
+    /* Pantalla de Carga */
+    #splash-screen {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: white; z-index: 2000;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      transition: opacity 0.5s ease, visibility 0.5s;
+    }
+    .splash-logo { font-size: 2.5rem; font-weight: 800; color: var(--primary); margin-bottom: 10px; }
+    .splash-subtitle { font-size: 1rem; color: #64748b; letter-spacing: 2px; text-transform: uppercase; }
+    .loader-bar { width: 150px; height: 4px; background: #e2e8f0; border-radius: 10px; margin-top: 20px; overflow: hidden; }
+    .loader-progress { width: 40%; height: 100%; background: var(--primary); animation: loading 1.5s infinite ease-in-out; }
+    @keyframes loading { 0% { transform: translateX(-100%); } 100% { transform: translateX(250%); } }
+
+    /* Header */
+    header {
+      background: white; padding: 1rem 2rem;
+      display: flex; justify-content: space-between; align-items: center;
+      position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow);
+    }
+    .logo { font-size: 1.5rem; font-weight: 800; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+
+    /* Notificación Toast */
+    #toast-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 3000; }
+    .toast {
+      background: #1e293b; color: white; padding: 12px 24px; border-radius: 50px;
+      display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+      animation: slideUp 0.3s ease-out;
+    }
+
+    .container { max-width: 1200px; margin: auto; padding: 20px; }
+
+    /* Botón Volver */
+    .btn-back {
+      background: none; border: none; color: var(--primary); cursor: pointer;
+      display: flex; align-items: center; gap: 5px; font-weight: 600; margin-bottom: 20px;
+      padding: 0; font-size: 1rem;
+    }
+
+    /* Categorías y Productos Grid */
+    .section-title { font-size: 1.2rem; margin: 20px 0; display: flex; align-items: center; gap: 10px; }
+    
+    /* Configuración para mostrar 2 en 2 por defecto en pantallas pequeñas */
+    .categories-grid, .products-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr); /* 2 columnas por defecto */
+      gap: 12px;
+      margin-bottom: 30px;
+    }
+
+    /* Ajuste para pantallas más grandes */
+    @media (min-width: 768px) {
+      .categories-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+      .products-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+      .container { padding: 30px; }
+    }
+
+    .category-card {
+      background: white; padding: 15px; border-radius: 16px;
+      text-align: center; cursor: pointer; transition: all 0.3s;
+      box-shadow: var(--shadow); border: 2px solid transparent;
+    }
+    .category-card:hover { border-color: var(--primary); transform: translateY(-3px); }
+    .category-card img { width: 50px; height: 50px; object-fit: cover; border-radius: 50%; margin-bottom: 10px; }
+
+    /* Productos */
+    #products-section { display: none; animation: fadeIn 0.4s ease; }
+    
+    .product-card {
+      background: white; border-radius: 16px; overflow: hidden;
+      box-shadow: var(--shadow); display: flex; flex-direction: column;
+    }
+    .product-card img { width: 100%; height: 140px; object-fit: cover; }
+    
+    @media (min-width: 768px) {
+        .product-card img { height: 180px; }
+    }
+
+    .product-info { padding: 12px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
+    .product-name { font-weight: 700; font-size: 0.95rem; margin-bottom: 5px; }
+    .product-price { color: var(--primary); font-size: 1.1rem; font-weight: 700; margin-bottom: 10px; }
+    
+    .btn-add {
+      width: 100%; background: var(--primary); color: white; border: none;
+      padding: 10px; border-radius: 8px; cursor: pointer; font-weight: 600;
+      display: flex; align-items: center; justify-content: center; gap: 5px;
+      font-size: 0.9rem;
+    }
+
+    /* Botón Carrito */
+    .cart-btn {
+      background: var(--primary); color: white; border: none;
+      padding: 12px; border-radius: 50%; cursor: pointer;
+      position: relative; display: flex; align-items: center; transition: transform 0.2s;
+    }
+    .cart-count {
+      position: absolute; top: -5px; right: -5px;
+      background: #ef4444; color: white; font-size: 12px;
+      width: 20px; height: 20px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; font-weight: bold;
+    }
+
+    /* Carrito Drawer */
+    .cart-overlay {
+      position: fixed; top: 0; right: -100%; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5); z-index: 1000; transition: right 0.3s ease;
+    }
+    .cart-overlay.open { right: 0; }
+    .cart-drawer {
+      position: absolute; top: 0; right: 0; width: 90%; max-width: 400px;
+      height: 100%; background: white; padding: 25px; box-sizing: border-box;
+      display: flex; flex-direction: column;
+    }
+    .cart-items { flex-grow: 1; overflow-y: auto; }
+    .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
+    
+    .cart-footer { padding-top: 20px; border-top: 2px solid #f1f5f9; }
+    .form-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
+    input { padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; }
+    .btn-checkout {
+      width: 100%; background: var(--accent); color: white; border: none;
+      padding: 15px; border-radius: 10px; font-weight: 700; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    .btn-checkout:disabled { background: #cbd5e1; cursor: not-allowed; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  </style>
+</head>
+<body>
+
+  <!-- Pantalla de Carga -->
+  <div id="splash-screen">
+    <div class="splash-logo">Cuban-Store</div>
+    <div class="splash-subtitle">Calidad y elegancia en cada pedido</div>
+    <div class="loader-bar"><div class="loader-progress"></div></div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <header>
+    <div class="logo"><i data-lucide="shopping-bag"></i> Cuban-Store</div>
+    <button class="cart-btn" onclick="toggleCart(true)">
+      <i data-lucide="shopping-cart"></i>
+      <div class="cart-count" id="cart-count">0</div>
+    </button>
+  </header>
+
+  <div class="container">
+    <!-- Sección Categorías -->
+    <div id="categories-section">
+      <h3 class="section-title"><i data-lucide="layout-grid"></i> Categorías</h3>
+      <div class="categories-grid" id="categories">
+        <p>Cargando categorías...</p>
+      </div>
+    </div>
+
+    <!-- Sección Productos (Oculta por defecto) -->
+    <div id="products-section">
+      <button class="btn-back" onclick="hideProducts()">
+        <i data-lucide="arrow-left"></i> Volver
+      </button>
+      <h3 class="section-title" id="selected-category-name">Productos</h3>
+      <div class="products-grid" id="products"></div>
+    </div>
+  </div>
+
+  <!-- Carrito Lateral -->
+  <div class="cart-overlay" id="cart-overlay" onclick="toggleCart(false)">
+    <div class="cart-drawer" onclick="event.stopPropagation()">
+      <div class="cart-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h2>Tu Carrito</h2>
+        <button onclick="toggleCart(false)" style="background:none; border:none; cursor:pointer;"><i data-lucide="x"></i></button>
+      </div>
+      <div class="cart-items" id="cart-items"></div>
+      <div class="cart-footer">
+        <div style="display:flex; justify-content:space-between; font-size: 1.2rem; font-weight: 800; margin-bottom: 20px;">
+          <span>Total:</span>
+          <span id="cart-total">CUP 0.00</span>
+        </div>
+        <div class="form-group">
+          <input type="text" id="cust-name" placeholder="Tu Nombre">
+          <input type="text" id="cust-address" placeholder="Dirección de Entrega">
+          <input type="text" id="cust-phone" placeholder="Teléfono de Contacto">
+        </div>
+        <button id="btn-whatsapp" class="btn-checkout" disabled>
+          <i data-lucide="message-circle"></i> Confirmar pedido
+        </button>
+      </div>
+    </div>
+  </div>
+
+<script type="module">
+    import { getCategories, getAllProducts } from './api.js';
+
+    let allProducts = [];
+    let cart = [];
+
+    async function loadData() {
+      try {
+        const [categories, products] = await Promise.all([getCategories(), getAllProducts()]);
+        allProducts = products;
+        renderCategories(categories);
+        lucide.createIcons();
+        
+        // Pantalla de carga configurada a 3000ms (3 segundos)
+        setTimeout(() => {
+          const splash = document.getElementById('splash-screen');
+          splash.style.opacity = '0';
+          splash.style.visibility = 'hidden';
+        }, 3000);
+
+      } catch (e) {
+        console.error("Error:", e);
+        document.getElementById('categories').innerHTML = "<p>Error de conexión.</p>";
+      }
+    }
+
+    function renderCategories(categories) {
+      const container = document.getElementById('categories');
+      container.innerHTML = categories.map(cat => `
+        <div class="category-card" onclick="showCategory('${cat.id}', '${cat.name}')">
+          <img src="${cat.image_url || 'https://via.placeholder.com/60'}" alt="${cat.name}">
+          <div style="font-size: 0.9rem; font-weight: 600;">${cat.name}</div>
+        </div>
+      `).join('');
+    }
+
+    window.showCategory = function(id, name) {
+      document.getElementById('categories-section').style.display = 'none';
+      const section = document.getElementById('products-section');
+      const grid = document.getElementById('products');
+      const title = document.getElementById('selected-category-name');
+      
+      section.style.display = 'block';
+      title.innerHTML = `<i data-lucide="layers"></i> ${name}`;
+      
+      const filtered = allProducts.filter(p => String(p.category_id) === String(id) && p.active !== false);
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `<p style="grid-column: 1/-1; text-align: center; padding: 40px; color: #64748b;">No hay productos.</p>`;
+      } else {
+        grid.innerHTML = filtered.map(p => `
+          <div class="product-card">
+            <img src="${p.image_url || 'https://via.placeholder.com/240'}" alt="${p.name}">
+            <div class="product-info">
+              <div class="product-name">${p.name}</div>
+              <div class="product-price">CUP ${Number(p.price).toFixed(2)}</div>
+              <button class="btn-add" onclick="addToCart('${p.id}')">
+                <i data-lucide="plus-circle" style="width:16px"></i> Agregar
+              </button>
+            </div>
+          </div>
+        `).join('');
+      }
+      lucide.createIcons();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    window.hideProducts = function() {
+      document.getElementById('products-section').style.display = 'none';
+      document.getElementById('categories-section').style.display = 'block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    window.showToast = function(text) {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.innerHTML = `<i data-lucide="check-circle" style="color:var(--accent)"></i> ${text}`;
+      container.appendChild(toast);
+      lucide.createIcons();
+      
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+      }, 2500);
+    }
+
+    window.addToCart = function(id) {
+      const prod = allProducts.find(p => String(p.id) === String(id));
+      if(prod) {
+        cart.push({...prod});
+        updateCartUI();
+        showToast(`${prod.name} añadido`);
+        
+        const cartBtn = document.querySelector('.cart-btn');
+        cartBtn.style.transform = 'scale(1.2)';
+        setTimeout(() => cartBtn.style.transform = 'scale(1)', 200);
+      }
+    }
+
+    window.removeItem = function(index) {
+      cart.splice(index, 1);
+      updateCartUI();
+    }
+
+    window.toggleCart = function(show) {
+      document.getElementById('cart-overlay').classList.toggle('open', show);
+    }
+
+    function updateCartUI() {
+      const list = document.getElementById('cart-items');
+      const totalEl = document.getElementById('cart-total');
+      const countEl = document.getElementById('cart-count');
+      countEl.textContent = cart.length;
+
+      if (cart.length === 0) {
+        list.innerHTML = `<p style="text-align:center; color: #64748b; margin-top: 40px;">El carrito está vacío</p>`;
+        totalEl.textContent = "CUP 0.00";
+      } else {
+        let total = 0;
+        list.innerHTML = cart.map((item, index) => {
+          total += Number(item.price);
+          return `
+            <div class="cart-item">
+              <div>
+                <div style="font-weight:600">${item.name}</div>
+                <div style="font-size:0.85rem; color:var(--primary)">CUP ${Number(item.price).toFixed(2)}</div>
+              </div>
+              <button onclick="removeItem(${index})" style="background:none; border:none; color:#ef4444; cursor:pointer">
+                <i data-lucide="trash-2" style="width:18px"></i>
+              </button>
+            </div>
+          `;
+        }).join('');
+        totalEl.textContent = `CUP ${total.toFixed(2)}`;
+      }
+      lucide.createIcons();
+      checkForm();
+    }
+
+    function checkForm() {
+      const name = document.getElementById('cust-name').value.trim();
+      const addr = document.getElementById('cust-address').value.trim();
+      const phon = document.getElementById('cust-phone').value.trim();
+      const btn = document.getElementById('btn-whatsapp');
+      const isReady = name.length > 2 && addr.length > 5 && phon.length > 6 && cart.length > 0;
+      btn.disabled = !isReady;
+      btn.style.opacity = isReady ? "1" : "0.5";
+    }
+
+    ['cust-name', 'cust-address', 'cust-phone'].forEach(id => {
+      document.getElementById(id).addEventListener('input', checkForm);
+    });
+
+    document.getElementById('btn-whatsapp').onclick = function() {
+      const name = document.getElementById('cust-name').value;
+      const addr = document.getElementById('cust-address').value;
+      const phon = document.getElementById('cust-phone').value;
+      let msg = `*NUEVO PEDIDO - CUBAN-STORE* 🛒\n\n`;
+      cart.forEach(i => msg += `• ${i.name} - CUP ${Number(i.price).toFixed(2)}\n`);
+      const total = cart.reduce((a, b) => a + Number(b.price), 0);
+      msg += `\n*Total: CUP ${total.toFixed(2)}*`;
+      msg += `\n\n*Cliente:* ${name}\n*Dirección:* ${addr}\n*Teléfono:* ${phon}`;
+      window.open(`https://wa.me/53910527?text=${encodeURIComponent(msg)}`, '_blank');
+    };
+
+    loadData();
+</script>
+</body>
+</html>
