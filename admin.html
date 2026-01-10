@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin - Gestión de Catálogo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+    body { background-color: #0F172B; color: #e2e8f0; padding: 20px; max-width: 1000px; margin: 0 auto; }
+    .panel-section { background-color: #1e293b; border-radius: 12px; padding: 25px; margin-bottom: 30px; border: 1px solid #334155; }
+    h2 { color: #93c5fd; margin-bottom: 20px; border-bottom: 1px solid #334155; padding-bottom: 10px; }
+    .hidden { display: none; }
+    .form-row { display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; margin-bottom: 25px; background: #0f172a; padding: 15px; border-radius: 8px; }
+    .form-field { flex: 1; min-width: 150px; }
+    .form-field label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 5px; }
+    input { width: 100%; padding: 10px; background: #1e293b; color: white; border: 1px solid #334155; border-radius: 6px; }
+    .btn-add { background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    .list-item { background-color: #0F172B; border: 1px solid #334155; border-radius: 8px; padding: 15px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+    .item-inactive { opacity: 0.5; filter: grayscale(0.8); }
+    .list-actions { display: flex; gap: 8px; }
+    .btn-view { background: #3b82f6; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
+    .btn-edit { background: #f59e0b; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
+    .btn-save { background: #10b981; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
+    .btn-delete { background: #ef4444; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
+    .status-badge { padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; border: none; cursor: pointer; }
+    .bg-on { background: #064e3b; color: #10b981; }
+    .bg-off { background: #450a0a; color: #ef4444; }
+    .loading { opacity: 0.5; pointer-events: none; }
+  </style>
+</head>
+<body>
+
+  <h1>Administrador de Catálogo</h1>
+
+  <!-- SECCIÓN CATEGORÍAS -->
+  <div id="section-categories" class="panel-section">
+    <h2>📁 Categorías</h2>
+    <div class="form-row">
+      <div class="form-field">
+        <label>Nombre Categoría</label>
+        <input id="new-cat-name" placeholder="Ej: Hamburguesas">
+      </div>
+      <div class="form-field">
+        <label>Imagen</label>
+        <input type="file" id="new-cat-img" accept="image/*">
+      </div>
+      <button class="btn-add" onclick="handleAddCategory()">➕ Crear</button>
+    </div>
+    <ul id="categories-list"></ul>
+  </div>
+
+  <!-- SECCIÓN PRODUCTOS -->
+  <div id="section-products" class="panel-section hidden">
+    <button onclick="showCategories()" style="background:#475569; color:white; border:none; padding:8px 15px; border-radius:6px; cursor:pointer; margin-bottom:15px;">⬅ Volver</button>
+    <h2 id="current-cat-title">🛍️ Productos</h2>
+    <div class="form-row">
+      <div class="form-field">
+        <label>Producto</label>
+        <input id="new-prod-name" placeholder="Nombre">
+      </div>
+      <div class="form-field">
+        <label>Precio</label>
+        <input id="new-prod-price" type="number" step="0.01">
+      </div>
+      <div class="form-field">
+        <label>Imagen</label>
+        <input type="file" id="new-prod-img" accept="image/*">
+      </div>
+      <button class="btn-add" onclick="handleAddProduct()">➕ Agregar</button>
+    </div>
+    <ul id="products-list"></ul>
+  </div>
+
+<script type="module">
+    import * as api from './api.js';
+
+    let allProducts = [];
+    let allCategories = [];
+    let currentCategoryId = null;
+    let editingId = null; // Para categorías o productos
+
+    async function refreshData() {
+      try {
+        const [categories, products] = await Promise.all([api.getCategories(), api.getAllProducts()]);
+        allCategories = categories;
+        allProducts = products;
+        renderCategories();
+        if (currentCategoryId) renderProducts();
+      } catch (e) { alert("Error al cargar datos"); }
+    }
+
+    // --- RENDER CATEGORÍAS ---
+    function renderCategories() {
+      const list = document.getElementById('categories-list');
+      list.innerHTML = allCategories.map(cat => {
+        const isEditing = editingId === cat.id;
+        return `
+        <li class="list-item">
+          <div style="display:flex; align-items:center; gap:12px; flex:1">
+            <img src="${cat.image_url || 'https://via.placeholder.com/50'}" width="50" height="50" style="border-radius:8px; object-fit:cover">
+            ${isEditing ? 
+                `<input id="edit-cat-name-${cat.id}" value="${cat.name}" style="max-width:200px">` : 
+                `<strong>${cat.name}</strong>`
+            }
+          </div>
+          <div class="list-actions">
+            ${isEditing ? `
+              <button class="btn-save" onclick="saveEditCategory('${cat.id}')">💾</button>
+              <button onclick="cancelEdit()" style="background:#64748b; color:white; border:none; padding:8px; border-radius:6px;">X</button>
+            ` : `
+              <button class="btn-view" onclick="showCategoryProducts('${cat.id}', '${cat.name}')">Ver</button>
+              <button class="btn-edit" onclick="startEdit('${cat.id}')">✏️</button>
+              <button class="btn-delete" onclick="handleDeleteCategory('${cat.id}')">🗑️</button>
+            `}
+          </div>
+        </li>
+      `}).join('');
+    }
+
+    // --- RENDER PRODUCTOS ---
+    function renderProducts() {
+      const list = document.getElementById('products-list');
+      const filtered = allProducts.filter(p => String(p.category_id) === String(currentCategoryId));
+
+      list.innerHTML = filtered.map(p => {
+        const isEditing = editingId === p.id;
+        const isActive = p.active !== false;
+        return `
+        <li class="list-item ${isActive ? '' : 'item-inactive'}">
+          <div style="flex:1">
+            ${isEditing ? `
+              <input id="edit-prod-name-${p.id}" value="${p.name}" style="margin-bottom:5px">
+              <input id="edit-prod-price-${p.id}" value="${p.price}" type="number">
+            ` : `
+              <strong>${p.name}</strong><br>
+              <span style="color:#10b981">$${p.price}</span>
+            `}
+          </div>
+          <div class="list-actions">
+            ${isEditing ? `
+              <button class="btn-save" onclick="saveEditProduct('${p.id}')">💾</button>
+              <button onclick="cancelEdit()" style="background:#64748b; color:white; border:none; padding:8px; border-radius:6px;">X</button>
+            ` : `
+              <button class="status-badge ${isActive ? 'bg-on' : 'bg-off'}" onclick="toggleStatus('${p.id}', ${isActive})">
+                ${isActive ? 'Activo' : 'Inactivo'}
+              </button>
+              <button class="btn-edit" onclick="startEdit('${p.id}')">✏️</button>
+              <button class="btn-delete" onclick="handleDeleteProduct('${p.id}')">🗑️</button>
+            `}
+          </div>
+        </li>
+      `}).join('');
+    }
+
+    // --- LÓGICA CATEGORÍAS ---
+    window.handleAddCategory = async () => {
+        const input = document.getElementById('new-cat-name');
+        const file = document.getElementById('new-cat-img').files[0];
+        if(!input.value) return;
+        
+        try {
+            let url = null;
+            if(file) url = await api.uploadImage('categories', file);
+            await api.createCategory(input.value, url);
+            input.value = ""; 
+            document.getElementById('new-cat-img').value = "";
+            refreshData();
+        } catch (e) { alert("Error al crear categoría"); }
+    };
+
+    window.saveEditCategory = async (id) => {
+        const newName = document.getElementById(`edit-cat-name-${id}`).value;
+        await api.updateCategory(id, { name: newName });
+        editingId = null;
+        refreshData();
+    };
+
+    window.handleDeleteCategory = async (id) => {
+        const hasProducts = allProducts.some(p => String(p.category_id) === String(id));
+        const msg = hasProducts ? "Esta categoría tiene productos. ¿Eliminar todo?" : "¿Eliminar categoría?";
+        if(confirm(msg)) {
+            await api.deleteCategory(id);
+            refreshData();
+        }
+    };
+
+    // --- LÓGICA PRODUCTOS ---
+    window.handleAddProduct = async () => {
+        const nameInp = document.getElementById('new-prod-name');
+        const priceInp = document.getElementById('new-prod-price');
+        const file = document.getElementById('new-prod-img').files[0];
+        
+        if(!nameInp.value || !priceInp.value) return;
+
+        try {
+            let url = null;
+            if(file) url = await api.uploadImage('products', file);
+            await api.createProduct({ 
+                name: nameInp.value, 
+                price: parseFloat(priceInp.value), 
+                image_url: url, 
+                category_id: currentCategoryId 
+            });
+            nameInp.value = ""; priceInp.value = "";
+            document.getElementById('new-prod-img').value = "";
+            refreshData();
+        } catch (e) { alert("Error al crear producto"); }
+    };
+
+    window.saveEditProduct = async (id) => {
+        const name = document.getElementById(`edit-prod-name-${id}`).value;
+        const price = document.getElementById(`edit-prod-price-${id}`).value;
+        await api.updateProduct(id, { name, price: parseFloat(price) });
+        editingId = null;
+        refreshData();
+    };
+
+    window.handleDeleteProduct = async (id) => {
+        if(confirm("¿Eliminar producto?")) {
+            await api.deleteProduct(id);
+            refreshData();
+        }
+    };
+
+    window.toggleStatus = async (id, currentStatus) => {
+        await api.updateProduct(id, { active: !currentStatus });
+        refreshData();
+    };
+
+    // --- NAVEGACIÓN Y ESTADOS ---
+    window.showCategoryProducts = (id, name) => {
+        currentCategoryId = id;
+        editingId = null;
+        document.getElementById('section-categories').classList.add('hidden');
+        document.getElementById('section-products').classList.remove('hidden');
+        document.getElementById('current-cat-title').innerText = `Productos: ${name}`;
+        renderProducts();
+    };
+
+    window.showCategories = () => {
+        currentCategoryId = null;
+        editingId = null;
+        document.getElementById('section-products').classList.add('hidden');
+        document.getElementById('section-categories').classList.remove('hidden');
+    };
+
+    window.startEdit = (id) => { editingId = id; renderCategories(); if(currentCategoryId) renderProducts(); };
+    window.cancelEdit = () => { editingId = null; renderCategories(); if(currentCategoryId) renderProducts(); };
+
+    refreshData();
+</script>
+</body>
+</html>
