@@ -12,6 +12,7 @@
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
+
   gtag('config', 'G-YK3NZLGRLW');
 </script>
 
@@ -87,6 +88,19 @@
       font-size: 10px; font-weight: 900; min-width: 18px; height: 18px;
       border-radius: 50%; display: flex; align-items: center; justify-content: center;
       border: 2px solid var(--primary);
+    }
+
+    /* ANIMACIÓN DEL CARRITO VOLADOR */
+    .flying-cart-icon {
+      position: fixed;
+      z-index: 9999;
+      pointer-events: none;
+      color: var(--accent);
+      transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      filter: drop-shadow(0 0 5px rgba(212, 175, 55, 0.5));
     }
 
     .container { max-width: 1100px; margin: 0 auto; padding: 20px; }
@@ -205,19 +219,6 @@
 
     .section-header { display: flex; align-items: center; gap: 12px; margin: 30px 0; }
     .section-header h2 { font-size: 1.1rem; letter-spacing: 2px; text-transform: uppercase; margin: 0; }
-
-    /* --- ANIMACIÓN PRODUCTO VOLADOR --- */
-    .flying-cart-icon {
-      position: fixed;
-      z-index: 10000;
-      pointer-events: none;
-      color: var(--accent);
-      transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0.8;
-    }
   </style>
 </head>
 <body>
@@ -445,7 +446,7 @@
       const product = DB.products.find(p => String(p.id) === String(id));
       if(!product) return;
 
-      // --- EFECTO VISUAL DE VUELO ---
+      // --- ANIMACIÓN FLYING CART ---
       if (event) {
         const btn = event.currentTarget;
         const cartBtn = document.querySelector('.cart-trigger');
@@ -461,16 +462,16 @@
         
         lucide.createIcons({ attrs: { style: "width: 24px; height: 24px;" } });
 
+        // Animación hacia el destino
         setTimeout(() => {
           flyer.style.left = `${cartRect.left + cartRect.width / 2}px`;
           flyer.style.top = `${cartRect.top + cartRect.height / 2}px`;
-          flyer.style.transform = 'scale(0.2) rotate(360deg)';
+          flyer.style.transform = 'scale(0.3) rotate(360deg)';
           flyer.style.opacity = '0';
-        }, 10);
+        }, 50);
 
-        setTimeout(() => flyer.remove(), 800);
+        setTimeout(() => flyer.remove(), 850);
       }
-      // --- FIN EFECTO ---
 
       const existingIndex = cart.findIndex(item => String(item.id) === String(id));
       if(existingIndex > -1) {
