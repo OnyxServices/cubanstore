@@ -12,7 +12,6 @@
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-
   gtag('config', 'G-YK3NZLGRLW');
 </script>
 
@@ -88,19 +87,6 @@
       font-size: 10px; font-weight: 900; min-width: 18px; height: 18px;
       border-radius: 50%; display: flex; align-items: center; justify-content: center;
       border: 2px solid var(--primary);
-    }
-
-    /* ANIMACIÓN DEL CARRITO VOLADOR */
-    .flying-cart-icon {
-      position: fixed;
-      z-index: 9999;
-      pointer-events: none;
-      color: var(--accent);
-      transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      filter: drop-shadow(0 0 5px rgba(212, 175, 55, 0.5));
     }
 
     .container { max-width: 1100px; margin: 0 auto; padding: 20px; }
@@ -219,6 +205,26 @@
 
     .section-header { display: flex; align-items: center; gap: 12px; margin: 30px 0; }
     .section-header h2 { font-size: 1.1rem; letter-spacing: 2px; text-transform: uppercase; margin: 0; }
+
+    /* --- ANIMACIÓN PRODUCTO VOLADOR ACTUALIZADA --- */
+    .flying-cart-icon {
+      position: fixed;
+      z-index: 10000;
+      pointer-events: none;
+      color: var(--accent);
+      /* Velocidad más lenta y fluida */
+      transition: all 1.2s cubic-bezier(0.19, 1, 0.22, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--primary);
+      border: 2px solid var(--accent);
+      border-radius: 50%;
+      width: 45px;
+      height: 45px;
+      box-shadow: 0 0 20px rgba(212, 175, 55, 0.6);
+      opacity: 1;
+    }
   </style>
 </head>
 <body>
@@ -234,7 +240,7 @@
       <i data-lucide="shield-check"></i>
       <span>CUBAN STORE</span>
     </div>
-    <button class="cart-trigger" onclick="toggleCart(true)">
+    <button class="cart-trigger" id="cart-btn-anchor" onclick="toggleCart(true)">
       <i data-lucide="shopping-cart"></i>
       <div class="cart-count" id="cart-count">0</div>
     </button>
@@ -441,37 +447,44 @@
       lucide.createIcons();
     }
 
-    // LÓGICA DEL CARRITO CON ANIMACIÓN
+    // LÓGICA DEL CARRITO CON ANIMACIÓN ACTUALIZADA
     window.addToCart = (id, event) => {
       const product = DB.products.find(p => String(p.id) === String(id));
       if(!product) return;
 
-      // --- ANIMACIÓN FLYING CART ---
+      // --- EFECTO VISUAL DE VUELO PREMIUM ---
       if (event) {
         const btn = event.currentTarget;
-        const cartBtn = document.querySelector('.cart-trigger');
+        const cartBtn = document.getElementById('cart-btn-anchor');
         const rect = btn.getBoundingClientRect();
         const cartRect = cartBtn.getBoundingClientRect();
 
         const flyer = document.createElement('div');
         flyer.className = 'flying-cart-icon';
         flyer.innerHTML = '<i data-lucide="shopping-cart"></i>';
-        flyer.style.left = `${rect.left + rect.width / 2}px`;
-        flyer.style.top = `${rect.top}px`;
-        document.body.appendChild(flyer);
         
-        lucide.createIcons({ attrs: { style: "width: 24px; height: 24px;" } });
+        // Posición inicial (centrado en el botón clickeado)
+        flyer.style.left = `${rect.left + rect.width / 2 - 22}px`;
+        flyer.style.top = `${rect.top + rect.height / 2 - 22}px`;
+        
+        document.body.appendChild(flyer);
+        lucide.createIcons({ attrs: { style: "width: 20px; height: 20px;" } });
 
-        // Animación hacia el destino
-        setTimeout(() => {
-          flyer.style.left = `${cartRect.left + cartRect.width / 2}px`;
-          flyer.style.top = `${cartRect.top + cartRect.height / 2}px`;
-          flyer.style.transform = 'scale(0.3) rotate(360deg)';
-          flyer.style.opacity = '0';
-        }, 50);
+        // Pequeña pausa para que el DOM reconozca la posición inicial antes de animar
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            // Posición final (centrado en el icono del carrito del header)
+            flyer.style.left = `${cartRect.left + cartRect.width / 2 - 22}px`;
+            flyer.style.top = `${cartRect.top + cartRect.height / 2 - 22}px`;
+            flyer.style.transform = 'scale(0.4) rotate(720deg)'; // Más rotación
+            flyer.style.opacity = '0';
+          }, 50);
+        });
 
-        setTimeout(() => flyer.remove(), 850);
+        // Eliminar el elemento después de que termine la transición (1.2s)
+        setTimeout(() => flyer.remove(), 1300);
       }
+      // --- FIN EFECTO ---
 
       const existingIndex = cart.findIndex(item => String(item.id) === String(id));
       if(existingIndex > -1) {
