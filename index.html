@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Cuban-Store | Premium Shop</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-YK3NZLGRLW"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-YK3NZLGRLW');
+</script>
+
+  <style>
+    /* =========================================
+       VARIABLES PREMIUM DARK & GOLD
+       ========================================= */
+    :root {
+      --primary: #09090B;      /* Negro Zinc profundo */
+      --secondary: #18181B;    /* Gris oscuro para tarjetas */
+      --accent: #D4AF37;       /* Dorado Metálico */
+      --accent-hover: #F1C40F; /* Dorado brillante */
+      --bg-site: #020617;      /* Fondo ultra oscuro */
+      --text-main: #FAFAFA;
+      --text-muted: #A1A1AA;
+      --border: #27272A;
+      --radius: 12px;
+      --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      --transition: all 0.3s ease;
+      --error: #EF4444;        /* Rojo Alerta */
+    }
+
+    * { box-sizing: border-box; }
+    body { 
+      font-family: 'Inter', -apple-system, sans-serif; 
+      margin: 0; background-color: var(--bg-site); color: var(--text-main);
+      -webkit-tap-highlight-color: transparent;
+      padding-bottom: 80px; 
+    }
+
+    /* PANTALLA DE CARGA */
+    #splash-screen {
+      position: fixed; inset: 0; background: var(--primary);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 9999; transition: opacity 0.8s ease;
+    }
+
+    .logo-premium {
+      font-family: sans-serif;
+      font-size: 3rem; font-weight: 800; color: var(--accent);
+      text-transform: uppercase; letter-spacing: 4px;
+      margin-bottom: 0.5rem;
+      text-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+    }
+    
+    .splash-subtitle {
+      color: var(--text-muted); font-size: 0.9rem; letter-spacing: 5px;
+      text-transform: uppercase; margin-bottom: 2rem;
+    }
+
+    .loader-container { width: 180px; height: 2px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; }
+    .loader-bar { width: 40%; height: 100%; background: var(--accent); animation: loading 1.5s infinite ease-in-out; }
+    @keyframes loading { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
+
+    header {
+      background: rgba(9, 9, 11, 0.95); padding: 1rem 1.5rem;
+      display: flex; justify-content: space-between; align-items: center;
+      position: sticky; top: 0; z-index: 1000; 
+      border-bottom: 1px solid var(--border); backdrop-filter: blur(10px);
+    }
+
+    .brand { display: flex; align-items: center; gap: 10px; font-size: 1.3rem; font-weight: 700; color: var(--accent); }
+
+    .cart-trigger {
+      background: transparent; color: var(--text-main); border: 1px solid var(--border);
+      width: 45px; height: 45px; border-radius: 10px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      position: relative; transition: var(--transition);
+    }
+    .cart-count {
+      position: absolute; top: -5px; right: -8px;
+      background: var(--accent); color: var(--primary);
+      font-size: 10px; font-weight: 900; min-width: 18px; height: 18px;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      border: 2px solid var(--primary);
+    }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 20px; }
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 20px; }
+    @media (min-width: 768px) { .grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 24px; } }
+
+    .card {
+      background: var(--secondary); border-radius: var(--radius);
+      overflow: hidden; border: 1px solid var(--border); transition: var(--transition);
+      display: flex; flex-direction: column;
+    }
+    .card:hover { transform: translateY(-5px); border-color: var(--accent); box-shadow: var(--shadow); }
+    .card-media { width: 100%; aspect-ratio: 1/1; overflow: hidden; background: #111; display: flex; align-items: center; justify-content: center; }
+    .card-media img { width: 100%; height: 100%; object-fit: cover; transition: 0.5s; }
+    .card:hover .card-media img { transform: scale(1.05); }
+    .card-body { padding: 15px; display: flex; flex-direction: column; gap: 10px; flex-grow: 1; }
+    .card-title { font-weight: 600; font-size: 0.9rem; color: var(--text-main); height: 2.5em; overflow: hidden; }
+    .card-price { font-size: 1.2rem; font-weight: 800; color: var(--accent); }
+    
+    .btn-action {
+      background: var(--accent); color: var(--primary); border: none; padding: 10px;
+      border-radius: 8px; font-weight: 700; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: var(--transition);
+    }
+    .btn-action:active { transform: scale(0.95); background: var(--accent-hover); }
+
+    /* INDICADOR DE CARGA INFINITE SCROLL */
+    .sentinel {
+      grid-column: 1 / -1;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 10px;
+    }
+    .scroll-loader {
+      width: 25px; height: 25px;
+      border: 3px solid rgba(212, 175, 55, 0.2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: none;
+    }
+    .sentinel.active .scroll-loader { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* CARRITO */
+    .drawer-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+      z-index: 2000; opacity: 0; visibility: hidden; transition: 0.3s; backdrop-filter: blur(8px);
+    }
+    .drawer-overlay.active { opacity: 1; visibility: visible; }
+    .drawer {
+      position: absolute; right: -100%; top: 0; width: 100%; max-width: 420px;
+      height: 100%; background: var(--primary); transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex; flex-direction: column; padding: 30px; border-left: 1px solid var(--border);
+    }
+    .drawer-overlay.active .drawer { right: 0; }
+
+    .cart-item { display: flex; align-items: center; gap: 15px; padding: 15px 0; border-bottom: 1px solid var(--border); }
+    .qty-controls { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+    .qty-btn {
+        background: var(--secondary); border: 1px solid var(--border); color: white;
+        width: 28px; height: 28px; border-radius: 6px; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+    }
+
+    /* FORMULARIO Y VALIDACIÓN */
+    .cart-form { margin-top: 20px; display: flex; flex-direction: column; gap: 12px; }
+    .cart-form input {
+      padding: 14px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--secondary); color: white; font-size: 0.9rem;
+      transition: 0.2s; outline: none;
+    }
+    .cart-form input:focus { border-color: var(--accent); }
+    .cart-form input.invalid { border-color: var(--error) !important; box-shadow: 0 0 0 1px var(--error); }
+
+    .btn-whatsapp {
+      background: #25D366; color: white; border: none; padding: 16px;
+      border-radius: 10px; font-weight: 700; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 20px;
+    }
+
+    /* FOOTER FIJO */
+    .footer-fixed {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      width: 90%; max-width: 320px; background: rgba(24, 24, 27, 0.85);
+      backdrop-filter: blur(12px); border: 1px solid var(--border);
+      border-radius: 20px; padding: 12px 25px; display: flex;
+      justify-content: space-around; align-items: center; z-index: 1500;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    }
+
+    .footer-link {
+      color: var(--text-muted); text-decoration: none; display: flex;
+      flex-direction: column; align-items: center; gap: 4px; transition: var(--transition);
+    }
+    .footer-link:hover { color: var(--accent); transform: translateY(-2px); }
+    .footer-link span { font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+
+    /* NOTIFICACIONES */
+    .toast {
+      position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+      background: var(--accent); color: var(--primary); padding: 12px 24px;
+      border-radius: 8px; font-weight: 700; z-index: 3000; box-shadow: var(--shadow);
+    }
+    .toast-error {
+      position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+      background: var(--error); color: white; padding: 14px 28px;
+      border-radius: 10px; font-weight: 700; z-index: 5000; 
+      display: flex; align-items: center; gap: 10px;
+      animation: slideInDown 0.4s ease;
+    }
+    @keyframes slideInDown { from { transform: translate(-50%, -150%); } to { transform: translate(-50%, 0); } }
+
+    .section-header { display: flex; align-items: center; gap: 12px; margin: 30px 0; }
+    .section-header h2 { font-size: 1.1rem; letter-spacing: 2px; text-transform: uppercase; margin: 0; }
+  </style>
+</head>
+<body>
+
+  <div id="splash-screen">
+    <div class="logo-premium">Cuban Store</div>
+    <div class="splash-subtitle">"Todo lo que usted busca"</div>
+    <div class="loader-container"><div class="loader-bar"></div></div>
+  </div>
+
+  <header>
+    <div class="brand">
+      <i data-lucide="shield-check"></i>
+      <span>CUBAN STORE</span>
+    </div>
+    <button class="cart-trigger" onclick="toggleCart(true)">
+      <i data-lucide="shopping-cart"></i>
+      <div class="cart-count" id="cart-count">0</div>
+    </button>
+  </header>
+
+  <main class="container">
+    <section id="categories-view">
+      <div class="section-header">
+        <i data-lucide="layout-grid" style="color: var(--accent)"></i>
+        <h2>Categorías</h2>
+      </div>
+      <div class="grid" id="categories-grid"></div>
+    </section>
+
+    <section id="products-view" style="display: none;">
+      <button onclick="showCategories()" style="background:none; border:none; color:var(--accent); cursor:pointer; display:flex; align-items:center; gap:5px; margin-bottom:20px; font-weight:600;">
+        <i data-lucide="chevron-left"></i> Volver
+      </button>
+      <div class="section-header">
+        <i data-lucide="package" style="color: var(--accent)"></i>
+        <h2 id="current-cat-name">Productos</h2>
+      </div>
+      <div class="grid" id="products-grid"></div>
+      
+      <!-- Elemento centinela para Infinite Scroll -->
+      <div id="infinite-sentinel" class="sentinel">
+        <div class="scroll-loader"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer-fixed">
+    <a href="tel:+5353910527" class="footer-link">
+      <i data-lucide="phone"></i>
+      <span>Llamar</span>
+    </a>
+    <div style="width: 1px; height: 20px; background: var(--border);"></div>
+    <a href="https://www.facebook.com/share/19h915VN2Q/?mibextid=wwXIfr" target="_blank" class="footer-link">
+      <i data-lucide="facebook"></i>
+      <span>Facebook</span>
+    </a>
+  </footer>
+
+  <div class="drawer-overlay" id="cart-overlay" onclick="toggleCart(false)">
+    <div class="drawer" onclick="event.stopPropagation()">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
+        <h3 style="margin:0; letter-spacing:1px;">Mi Pedido</h3>
+        <button onclick="toggleCart(false)" style="background:none; border:none; color:white; cursor:pointer"><i data-lucide="x"></i></button>
+      </div>
+      
+      <div id="cart-list" style="flex:1; overflow-y:auto;"></div>
+
+      <div style="border-top: 1px solid var(--border); padding-top:20px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+          <span style="color:var(--text-muted)">TOTAL</span>
+          <span id="cart-total" style="color:var(--accent); font-size:1.5rem; font-weight:800;">$0</span>
+        </div>
+
+        <div class="cart-form" id="order-form">
+          <input type="text" id="order-name" placeholder="Nombre completo" autocomplete="name">
+          <input type="text" id="order-address" placeholder="Dirección exacta">
+          <input type="text" id="order-ref" placeholder="Punto de referencia (opcional)">
+          <input type="tel" id="order-phone" placeholder="Teléfono (Ej: 51234567)" maxlength="8">
+        </div>
+
+        <button class="btn-whatsapp" onclick="sendOrder()">
+          <i data-lucide="send"></i> ENVIAR PEDIDO POR WHATSAPP
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-root"></div>
+
+  <script type="module">
+    import { getCategories, getAllProducts } from './api.js';
+
+    // VARIABLES DE ESTADO
+    let DB = { categories: [], products: [] };
+    let cart = [];
+    
+    // VARIABLES INFINITE SCROLL
+    let filteredProducts = [];
+    let itemsPerPage = 8;
+    let currentPage = 1;
+    let observer = null;
+
+    async function init() {
+      loadCartFromStorage();
+      await updateDataFromServer();
+      renderCategories();
+      updateCartUI();
+      setupFormValidation();
+      setupInfiniteScroll(); // Inicializar observador
+      
+      lucide.createIcons();
+      
+      setTimeout(() => {
+        document.getElementById('splash-screen').style.opacity = '0';
+        setTimeout(() => document.getElementById('splash-screen').style.display = 'none', 800);
+      }, 2000);
+    }
+
+    // CONFIGURACIÓN DEL OBSERVADOR (SCROLL)
+    function setupInfiniteScroll() {
+      const sentinel = document.getElementById('infinite-sentinel');
+      
+      observer = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && filteredProducts.length > 0) {
+          renderNextChunk();
+        }
+      }, { rootMargin: '200px' });
+
+      observer.observe(sentinel);
+    }
+
+    async function updateDataFromServer() {
+      try {
+        const [cats, prods] = await Promise.all([getCategories(), getAllProducts()]);
+        DB.categories = cats; DB.products = prods;
+      } catch (err) { console.error("Error actualizando datos:", err); }
+    }
+
+    // NAVEGACIÓN
+    window.showCategories = () => {
+      document.getElementById('products-view').style.display = 'none';
+      document.getElementById('categories-view').style.display = 'block';
+      filteredProducts = []; // Limpiar cache
+      renderCategories();
+    };
+
+    window.showProducts = (catId, catName) => {
+      document.getElementById('categories-view').style.display = 'none';
+      document.getElementById('products-view').style.display = 'block';
+      document.getElementById('current-cat-name').innerText = catName;
+      
+      // Resetear paginación
+      const grid = document.getElementById('products-grid');
+      grid.innerHTML = '';
+      currentPage = 1;
+      
+      // Filtrar y guardar en cache
+      filteredProducts = DB.products.filter(p => String(p.category_id) === String(catId));
+      
+      // Cargar primera tanda
+      renderNextChunk();
+      window.scrollTo(0,0);
+    };
+
+    // RENDERIZADO POR CHUNKS (INFINITE SCROLL)
+    function renderNextChunk() {
+      const grid = document.getElementById('products-grid');
+      const sentinel = document.getElementById('infinite-sentinel');
+      
+      const start = (currentPage - 1) * itemsPerPage;
+      const end = start + itemsPerPage;
+      const chunk = filteredProducts.slice(start, end);
+
+      if (chunk.length === 0) {
+        sentinel.classList.remove('active');
+        return;
+      }
+
+      sentinel.classList.add('active');
+
+      const html = chunk.map(p => `
+        <div class="card">
+          <div class="card-media">
+            <img src="${p.image_url || 'https://via.placeholder.com/300'}" loading="lazy" alt="${p.name}">
+          </div>
+          <div class="card-body">
+            <div class="card-title">${p.name}</div>
+            <div class="card-price">$${Number(p.price).toLocaleString()}</div>
+            <button class="btn-action" onclick="addToCart('${p.id}')">
+              <i data-lucide="shopping-cart" style="width:16px"></i> AGREGAR
+            </button>
+          </div>
+        </div>
+      `).join('');
+
+      // Usar InsertAdjacent para no destruir los elementos anteriores y mantener el scroll
+      grid.insertAdjacentHTML('beforeend', html);
+      lucide.createIcons();
+      
+      currentPage++;
+
+      // Si ya cargamos todos, ocultar el loader
+      if (end >= filteredProducts.length) {
+        sentinel.classList.remove('active');
+      }
+    }
+
+    function renderCategories() {
+      const grid = document.getElementById('categories-grid');
+      if(!grid) return;
+      grid.innerHTML = DB.categories.map(cat => `
+        <div class="card" onclick="showProducts('${cat.id}', '${cat.name}')" style="cursor:pointer">
+          <div class="card-media"><img src="${cat.image_url || 'https://via.placeholder.com/300'}" alt="${cat.name}"></div>
+          <div class="card-body" style="text-align:center;">
+            <div class="card-title" style="height:auto; font-size:1rem; font-weight:700;">${cat.name}</div>
+          </div>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    // LÓGICA DEL CARRITO
+    window.addToCart = (id) => {
+      const product = DB.products.find(p => String(p.id) === String(id));
+      if(!product) return;
+      const existingIndex = cart.findIndex(item => String(item.id) === String(id));
+      if(existingIndex > -1) {
+        cart[existingIndex].qty += 1;
+      } else {
+        cart.push({...product, qty: 1});
+      }
+      saveCartToStorage();
+      updateCartUI();
+      showToast("Producto añadido");
+    };
+
+    window.updateQty = (index, delta) => {
+        cart[index].qty += delta;
+        if(cart[index].qty <= 0) {
+            cart.splice(index, 1);
+        }
+        saveCartToStorage();
+        updateCartUI();
+    };
+
+    window.removeFromCart = (index) => {
+      cart.splice(index, 1);
+      saveCartToStorage();
+      updateCartUI();
+    };
+
+    function updateCartUI() {
+      const list = document.getElementById('cart-list');
+      const totalEl = document.getElementById('cart-total');
+      const countEl = document.getElementById('cart-count');
+      let total = 0, totalItems = 0;
+
+      list.innerHTML = cart.map((item, i) => {
+        total += (Number(item.price) * item.qty);
+        totalItems += item.qty;
+        return `
+          <div class="cart-item">
+            <img src="${item.image_url}" style="width:50px; height:50px; border-radius:6px; object-fit:cover">
+            <div class="cart-item-info" style="flex:1">
+              <h4 style="margin:0; font-size:0.85rem">${item.name}</h4>
+              <span style="color:var(--accent); font-weight:700">$${Number(item.price).toLocaleString()}</span>
+              <div class="qty-controls">
+                <button class="qty-btn" onclick="updateQty(${i}, -1)"><i data-lucide="minus" style="width:14px"></i></button>
+                <span style="font-weight:bold">${item.qty}</span>
+                <button class="qty-btn" onclick="updateQty(${i}, 1)"><i data-lucide="plus" style="width:14px"></i></button>
+              </div>
+            </div>
+            <button onclick="removeFromCart(${i})" style="border:none; color:#EF4444; background:none; cursor:pointer"><i data-lucide="trash-2" style="width:18px"></i></button>
+          </div>
+        `;
+      }).join('');
+
+      countEl.innerText = totalItems;
+      totalEl.innerText = `$${total.toLocaleString()}`;
+      lucide.createIcons();
+    }
+
+    // FORMULARIO Y ENVÍO
+    window.sendOrder = () => {
+      const nameInput = document.getElementById('order-name');
+      const addrInput = document.getElementById('order-address');
+      const refInput = document.getElementById('order-ref');
+      const phoneInput = document.getElementById('order-phone');
+
+      if(cart.length === 0) {
+        showTopError("El carrito está vacío");
+        return;
+      }
+      if(!validateOrderForm()) {
+        showTopError("Por favor, rellena los campos correctamente");
+        return;
+      }
+
+      let total = 0;
+      const itemsList = cart.map(item => {
+        const subtotal = Number(item.price) * item.qty;
+        total += subtotal;
+        return `• *${item.qty}x* ${item.name} _($${subtotal.toLocaleString()})_`;
+      }).join('\n');
+
+      const text = encodeURIComponent(
+        `👑 *NUEVO PEDIDO | CUBAN STORE*\n\n` +
+        `👤 *Cliente:* ${nameInput.value.trim()}\n` +
+        `📍 *Dirección:* ${addrInput.value.trim()}\n` +
+        `🚩 *Ref:* ${refInput.value.trim() || 'No especificado'}\n` +
+        `📞 *Teléfono:* ${phoneInput.value.trim()}\n\n` +
+        `🛍️ *PRODUCTOS:*\n${itemsList}\n\n` +
+        `💰 *TOTAL:* $${total.toLocaleString()}\n\n` +
+        `✅ _Esperando confirmación..._`
+      );
+
+      window.open(`https://wa.me/53910527?text=${text}`, '_blank');
+      
+      // Limpiar pedido
+      cart = [];                   
+      saveCartToStorage();         
+      updateCartUI();              
+      nameInput.value = ""; addrInput.value = ""; refInput.value = ""; phoneInput.value = "";
+      toggleCart(false);           
+      showToast("¡Pedido enviado!");
+    };
+
+    function validateOrderForm() {
+        const name = document.getElementById('order-name');
+        const addr = document.getElementById('order-address');
+        const phone = document.getElementById('order-phone');
+        let isValid = true;
+
+        if (name.value.trim().length < 3) { name.classList.add('invalid'); isValid = false; }
+        if (addr.value.trim().length < 5) { addr.classList.add('invalid'); isValid = false; }
+        const phoneRegex = /^5\d{7}$/;
+        if (!phoneRegex.test(phone.value.trim())) { phone.classList.add('invalid'); isValid = false; }
+        return isValid;
+    }
+
+    function setupFormValidation() {
+        document.querySelectorAll('.cart-form input').forEach(input => {
+            input.addEventListener('input', () => {
+                input.classList.remove('invalid');
+                if(input.id === 'order-phone') input.value = input.value.replace(/\D/g, '');
+            });
+        });
+    }
+
+    // UTILIDADES
+    window.toggleCart = (open) => document.getElementById('cart-overlay').classList.toggle('active', open);
+    function saveCartToStorage() { localStorage.setItem('cuban_store_cart', JSON.stringify(cart)); }
+    function loadCartFromStorage() {
+        const stored = localStorage.getItem('cuban_store_cart');
+        if(stored) try { cart = JSON.parse(stored); } catch(e) { cart = []; }
+    }
+
+    function showTopError(msg) {
+      const root = document.getElementById('toast-root');
+      const toast = document.createElement('div');
+      toast.className = 'toast-error';
+      toast.innerHTML = `<i data-lucide="alert-circle"></i> <span>${msg}</span>`;
+      root.appendChild(toast);
+      lucide.createIcons();
+      setTimeout(() => { toast.style.opacity = "0"; setTimeout(() => toast.remove(), 500); }, 3500);
+    }
+
+    function showToast(msg) {
+      const root = document.getElementById('toast-root');
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.innerText = msg;
+      root.appendChild(toast);
+      setTimeout(() => toast.remove(), 2000);
+    }
+
+    init();
+  </script>
+</body>
+</html>
