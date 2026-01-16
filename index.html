@@ -1611,6 +1611,93 @@ function showFileError(message) {
   document.getElementById('confirm-zelle-btn').disabled = true;
 }
 
+// --- FUNCIÓN PARA PROCESAR EL PAGO DE ZELLE ---
+window.confirmZellePayment = async () => {
+  if (!zelleReceiptFile) {
+    showTopError("Por favor, sube el comprobante de Zelle");
+    return;
+  }
+
+  const btn = document.getElementById('confirm-zelle-btn');
+  const loader = document.getElementById('upload-progress');
+  const errorMsg = document.getElementById('file-error');
+
+  // Bloquear botón y mostrar cargando
+  btn.disabled = true;
+  loader.style.display = 'block';
+  errorMsg.style.display = 'none';
+
+  try {
+    // 1. Generar un ID de orden único
+    const orderId = `CS-Z-${Date.now().toString().slice(-6)}`;
+    
+    // 2. Subir el comprobante a Supabase
+    const uploadedUrl = await uploadReceiptToSupabase(zelleReceiptFile, orderId);
+    
+    // 3. Obtener datos del formulario
+    const name = document.getElementById('order-name').value.trim();
+    const phone = document.getElementById('order-phone').value.trim();
+    const addr = document.getElementById('order-address').value.trim();
+    const ref = document.getElementById('order-reference').value.trim();
+
+    // 4. Calcular totales y lista de productos
+    let totalBase = 0;
+    const itemsList = cart.map(item => {
+      totalBase += (parseFloat(item.price) * item.qty);
+      const pObj = getFinalPrice(item.price);
+      return `• *${item.qty}x* ${item.name} _(${pObj.text})_`;
+    }).join('\n');
+    
+    const finalTotal = getFinalPrice(totalBase);
+
+    // 5. Registrar el pedido en la base de datos
+    await createOrderInSupabase({
+      order_id: orderId,
+      customer_name: name,
+      phone: phone,
+      address: addr,
+      reference: ref,
+      items: cart,
+      total_text: finalTotal.text,
+      payment_method: 'Zelle',
+      receipt_url: uploadedUrl,
+      status: 'pending'
+    });
+
+    // 6. Construir mensaje de WhatsApp
+    const text = encodeURIComponent(
+      `👑 *NUEVO PAGO POR ZELLE*\nPedido: #${orderId}\n\n` +
+      `👤 *Cliente:* ${name}\n` +
+      `📍 *Dirección:* ${addr}\n` +
+      (ref ? `🏠 *Ref:* ${ref}\n` : '') +
+      `📞 *Tel:* +53${phone}\n` +
+      `📸 *Comprobante:* ${uploadedUrl}\n\n` +
+      `🛍️ *PRODUCTOS:*\n${itemsList}\n\n` +
+      `💰 *TOTAL:* ${finalTotal.text}`
+    );
+
+    // Redirigir a WhatsApp
+    setTimeout(() => {
+      window.location.href = `https://wa.me/+5353910527?text=${text}`;
+    }, 100);
+
+    // 7. Limpieza total y cierre
+    cart = [];
+    clearOrderForm();
+    saveCartToStorage();
+    updateCartUI();
+    toggleZelleModal(false);
+    toggleCart(false);
+
+  } catch (e) {
+    console.error('Error al procesar el pago Zelle:', e);
+    errorMsg.textContent = "Error al enviar el pago. Reintente.";
+    errorMsg.style.display = 'block';
+    btn.disabled = false;
+    loader.style.display = 'none';
+  }
+};
+
 window.openMlcModal = () => {
   toggleCart(false);
   let totalBase = 0, totalItems = 0;
