@@ -599,10 +599,10 @@
         <span>Llamar ahora</span>
       </a>
       <div style="height: 1px; background: var(--border); margin: 2px 0;"></div>
-     <a href="#" class="support-item">
-    <i data-lucide="message-square"></i>
-    <span>Enviar SMS</span>
-  </a>
+      <a href="javascript:void(0)" onclick="openSmsApp('+5353910527')" class="support-item">
+  <i data-lucide="message-square"></i>
+  <span>Enviar SMS</span>
+</a>
     </div>
 
     <!-- Botón de Soporte Actualizado -->
@@ -2060,6 +2060,22 @@ document.addEventListener('click', () => {
   const menu = document.getElementById('support-menu');
   if (menu) menu.classList.remove('active');
 });
+
+// ... código anterior ...
+
+window.openSmsApp = (phone) => {
+  // Verificamos si la app se está ejecutando dentro de Kodular/App Inventor
+  if (window.AppInventor) {
+    // Enviamos una señal a Kodular con el prefijo "SMS:"
+    window.AppInventor.setWebViewString("SMS:" + phone);
+  } else {
+    // Si se abre en un navegador normal, usamos el método estándar
+    window.location.href = "sms:" + phone;
+  }
+};
+
+// Iniciar app
+init();
 
 // Iniciar app
 init();
