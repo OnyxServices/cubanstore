@@ -926,14 +926,17 @@ function trackCategoryView(categoryName, products) {
   if (typeof gtag !== "function") return;
   if (!categoryName || !products || products.length === 0) return;
 
-  gtag('event', 'view_item_list', {
-    item_list_name: categoryName,
-    items: products.slice(0, 20).map(p => ({
-      item_id: String(p.id),
-      item_name: p.name,
-      item_category: categoryName
-    }))
-  });
+ gtag('event', 'view_item_list', {
+  item_list_name: categoryName,
+  items: products ? products.slice(0, 20).map(p => ({ // Añade validación aquí
+    item_id: String(p.id),
+    item_name: p.name,
+    item_category: categoryName,
+    // Sugerencia extra: Añade el precio si lo tienes
+    price: p.price, 
+    currency: currentPaymentMethodCode === '$' ? 'USD' : 'CUP' // O la moneda por defecto
+  })) : []
+});
 
   console.log('[GA4] Vista de categoría:', categoryName);
 }
@@ -1282,6 +1285,40 @@ function productCardHTML(p) {
 window.addToCart = (id, event) => {
   const product = DB.products.find(p => String(p.id) === String(id));
   if (!product) return;
+
+
+  if (typeof gtag === 'function') {
+    // 1. Buscamos el nombre de la categoría
+    const categoryObj = DB.categories.find(c => String(c.id) === String(product.category_id));
+    
+    // 2. Calculamos el precio real según la moneda seleccionada
+    // Usamos el valor numérico (quitando símbolos de moneda)
+    const priceObj = getFinalPrice(product.price);
+    const numericValue = parseFloat(priceObj.text.replace(/[^0-9.]/g, ''));
+
+    // 3. Mapeamos tus códigos internos a códigos ISO estándar para Google
+    const currencyMapping = {
+      "$": "USD",
+      "USD": "USD",
+      "CUP": "CUP",
+      "MLC": "USD", // MLC usualmente se trackea como USD por su valor
+      "Z": "USD",   // Zelle es USD
+      "Tra": "CUP"  // Transferencia suele ser CUP (ajusta si es necesario)
+    };
+    const isoCurrency = currencyMapping[currentPaymentMethodCode] || "USD";
+
+    gtag('event', 'add_to_cart', {
+      currency: isoCurrency,
+      value: numericValue,
+      items: [{
+        item_id: String(product.id),
+        item_name: product.name,
+        item_category: categoryObj ? categoryObj.name : "General",
+        price: numericValue,
+        quantity: 1
+      }]
+    });
+  }
 
   soundAddCart.currentTime = 0;
   soundAddCart.play().catch(()=>{});
@@ -2098,9 +2135,6 @@ window.openSmsApp = (phone) => {
     window.location.href = "sms:" + phone;
   }
 };
-
-// Iniciar app
-init();
 
 // Iniciar app
 init();
