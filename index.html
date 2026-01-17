@@ -920,6 +920,27 @@ let traReceiptFile = null;
 let mlcReceiptFile = null;
 let currentZelleOrderData = null;
 
+//          --- Funciones de Google Analitic---
+
+function trackCategoryView(categoryName, products) {
+  if (typeof gtag !== "function") return;
+  if (!categoryName || !products || products.length === 0) return;
+
+  gtag('event', 'view_item_list', {
+    item_list_name: categoryName,
+    items: products.slice(0, 20).map(p => ({
+      item_id: String(p.id),
+      item_name: p.name,
+      item_category: categoryName
+    }))
+  });
+
+  console.log('[GA4] Vista de categoría:', categoryName);
+}
+
+
+
+
 // --- AUDIO ---
 const soundAddCart = new Audio('https://onyxservices.github.io/cubanstore/agregado.mp3');
 const soundNewProduct = new Audio('https://onyxservices.github.io/cubanstore/new.mp3');
@@ -1185,6 +1206,10 @@ window.showProducts = (catId, catName) => {
   filteredProducts = DB.products.filter(p => 
     String(p.category_id) === String(catId) && p.active === true
   );
+
+  // 🔥 GA4 - Vista de categoría
+trackCategoryView(catName, filteredProducts);
+
   renderNextChunk();
   window.scrollTo(0, 0);
 };
