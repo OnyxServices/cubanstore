@@ -974,3 +974,25 @@
   0%, 100% { opacity: 1; }
   50% { opacity: 0.6; }
 }
+
+/* Icono que vuela al carrito */
+.flying-icon {
+  position: fixed;
+  z-index: 10000;
+  pointer-events: none;
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Animación de rebote para el icono del carrito en el header */
+@keyframes cart-bounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+}
+
+.cart-bounce-active {
+  animation: cart-bounce 0.4s ease;
+}

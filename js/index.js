@@ -432,10 +432,45 @@ window.addToCart = (id, event) => {
   } else {
     cart.push({ ...product, qty: 1 });
   }
-  // ... (aquí sigue tu código de analíticas, sonidos y flyers que ya tienes)
+
+  // --- 1. EFECTO DE SONIDO ---
+  soundAddCart.currentTime = 0; // Reinicia el audio por si se pulsa rápido
+  soundAddCart.play().catch(e => console.log("Error audio:", e));
+
+  // --- 2. EFECTO VISUAL (Icono Volador) ---
+  const btn = event.currentTarget;
+  const rect = btn.getBoundingClientRect();
+  const cartBtn = document.getElementById('cart-btn-anchor');
+  const cartRect = cartBtn.getBoundingClientRect();
+
+  // Crear el clon volador
+  const flyer = document.createElement('div');
+  flyer.className = 'flying-icon';
+  flyer.innerHTML = '<i data-lucide="shopping-cart"></i>';
+  flyer.style.left = `${rect.left + rect.width / 2}px`;
+  flyer.style.top = `${rect.top + rect.height / 2}px`;
+  document.body.appendChild(flyer);
+  lucide.createIcons(); // Para que el icono se vea
+
+  // Animación hacia el carrito
+  requestAnimationFrame(() => {
+    flyer.style.left = `${cartRect.left + cartRect.width / 2}px`;
+    flyer.style.top = `${cartRect.top + cartRect.height / 2}px`;
+    flyer.style.transform = 'scale(0.5)';
+    flyer.style.opacity = '0';
+  });
+
+  // Limpiar flyer y hacer rebotar el carrito al terminar
+  setTimeout(() => {
+    flyer.remove();
+    cartBtn.classList.add('cart-bounce-active');
+    setTimeout(() => cartBtn.classList.remove('cart-bounce-active'), 400);
+  }, 800);
+
+  // --- 3. ACTUALIZAR ESTADO ---
   saveCartToStorage();
   updateCartUI();
-  showToast("!✅Producto añadido");
+  showToast("✅ Producto añadido");
 };
 
 async function processStockDeduction() {
