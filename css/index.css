@@ -31,7 +31,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background-image: url('https://onyxservices.github.io/cubanstore/jpg/fondo.jpg');
+      background-image: url('https://onyxservices.github.io/cubanstore/img/fondo.jpg');
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
@@ -780,4 +780,5 @@
 .support-item:hover {
   background: rgba(255,255,255,0.05);
   color: var(--accent);
+
 }
