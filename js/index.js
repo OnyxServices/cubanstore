@@ -1120,64 +1120,87 @@ window.sendOrder = async () => {
   const ref = refInput.value.trim();
   const phone = phoneInput.value.trim();
 
+  // 1. Validaciones iniciales
   if (cart.length === 0) { showTopError("El carrito está vacío"); return; }
   
-  showToast("Confirmando stock...");
-  const ok = await processStockDeduction();
-  if (!ok) { showTopError("Error al procesar inventario"); return; }
-
   let hasError = false;
   if (name.length < 3) { nameInput.classList.add('invalid'); hasError = true; }
   if (addr.length < 5) { addrInput.classList.add('invalid'); hasError = true; }
   if (!/^[56]\d{7}$/.test(phone)) { phoneInput.classList.add('invalid'); hasError = true; }
-
   if (hasError) { showTopError("Revisa los datos marcados"); return; }
 
-  // Si el método de pago es Zelle, abrir modal en lugar de enviar directamente
+  // 2. Descontar Stock
+  showToast("Confirmando stock...");
+  const ok = await processStockDeduction();
+  if (!ok) { showTopError("Error al procesar inventario"); return; }
+
+  // 3. Lógica según el Método de Pago seleccionado
   if (currentPaymentMethodCode === 'Z') {
     openZelleModal();
-    return;
-  }
-
-   if (currentPaymentMethodCode === 'Tra') {
+  } else if (currentPaymentMethodCode === 'Tra') {
     openTraModal();
-    return;
-  }
-
-  if (currentPaymentMethodCode === 'mlc') {
+  } else if (currentPaymentMethodCode === 'mlc') {
     openMlcModal();
-    return;
+  } else {
+    // --- ESTE ES EL CASO PARA EFECTIVO / OTROS ---
+    const orderId = `CS-EF-${Date.now().toString().slice(-6)}`;
+    let totalBase = 0;
+    
+    // Preparar lista de productos para el mensaje
+    const itemsList = cart.map(item => {
+      totalBase += (parseFloat(item.price) * item.qty);
+      const pObj = getFinalPrice(item.price);
+      return `• *${item.qty}x* ${item.name} _(${pObj.text})_`;
+    }).join('\n');
+
+    const finalTotalObj = getFinalPrice(totalBase);
+
+    try {
+        showToast("Registrando pedido...");
+        
+        // REGISTRAR VENTA EN SUPABASE (Importante para que aparezca en el Admin)
+        await createOrderInSupabase({
+            order_id: orderId,
+            customer_name: name,
+            phone: phone,
+            address: addr,
+            reference: ref,
+            items: cart,
+            total_text: finalTotalObj.text,
+            payment_method: finalTotalObj.methodName,
+            status: 'completed' 
+        });
+
+        // Construir mensaje de WhatsApp
+        const text = encodeURIComponent(
+          `👑 *NUEVO PEDIDO | CUBAN STORE*\n` +
+          `Pedido: #${orderId}\n\n` +
+          `👤 *Cliente:* ${name}\n` +
+          `📍 *Dirección:* ${addr}\n` +
+          (ref ? `🏠 *Referencia:* ${ref}\n` : '') +
+          `📞 *Teléfono:* +53${phone}\n` +
+          `💳 *Método:* ${finalTotalObj.methodName}\n\n` +
+          `🛍️ *PRODUCTOS:*\n${itemsList}\n\n` +
+          `💰 *TOTAL A PAGAR:* ${finalTotalObj.text}\n\n` +
+          `✅ _Espere su confirmación, gracias..._`
+        );
+
+        // Abrir WhatsApp
+        window.open(`https://wa.me/+5353910527?text=${text}`, '_blank');
+        
+        // Limpieza de interfaz
+        cart = [];
+        clearOrderForm();
+        saveCartToStorage();
+        updateCartUI();
+        toggleCart(false);
+        showToast("¡Pedido enviado!");
+
+    } catch (e) {
+        console.error(e);
+        showTopError("Error al guardar en la base de datos");
+    }
   }
-
-  // Flujo normal para otros métodos de pago (copiar código existente aquí)
-  let totalBase = 0;
-  const itemsList = cart.map(item => {
-    totalBase += (parseFloat(item.price) * item.qty);
-    const pObj = getFinalPrice(item.price);
-    return `• *${item.qty}x* ${item.name} _(${pObj.text})_`;
-  }).join('\n');
-
-  const finalTotalObj = getFinalPrice(totalBase);
-  const text = encodeURIComponent(
-    `👑 *NUEVO PEDIDO | CUBAN STORE*\n\n` +
-    `👤 *Cliente:* ${name}\n` +
-    `📍 *Dirección:* ${addr}\n` +
-    (ref ? `🏠 *Referencia:* ${ref}\n` : '') +
-    `📞 *Teléfono:* +53${phone}\n` +
-    `💳 *Método de Pago:* ${finalTotalObj.methodName}\n\n` +
-    `🛍️ *PRODUCTOS:*\n${itemsList}\n\n` +
-    `💰 *TOTAL A PAGAR:* ${finalTotalObj.text}\n\n` +
-    `✅ _Espere su confirmación, gracias..._`
-  );
-
-  window.open(`https://wa.me/+5353910527?text=${text}`, '_blank');
-  
-  cart = [];
-  document.querySelectorAll('#order-form input').forEach(i => { i.value = ''; i.classList.remove('invalid'); });
-  saveCartToStorage();
-  updateCartUI();
-  toggleCart(false);
-  showToast("¡Pedido enviado!");
 };
 
 function clearOrderForm() {

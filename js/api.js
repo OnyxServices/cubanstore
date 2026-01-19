@@ -270,3 +270,23 @@ export async function loginAdmin(username, password) {
   }
   return data;
 }
+
+/* === CONFIGURACIONES (SETTINGS) === */
+export async function getDeductionPercent() {
+  const { data, error } = await supabase
+    .from("settings")
+    .select("value")
+    .eq("key", "deduction_percent")
+    .single();
+  if (error) return 0.7; // Valor por defecto si falla
+  return parseFloat(data.value);
+}
+
+export async function updateDeductionPercent(newValue) {
+  // upsert intenta actualizar; si no existe la llave, la inserta.
+  const { error } = await supabase
+    .from("settings")
+    .upsert({ key: "deduction_percent", value: String(newValue) }, { onConflict: 'key' });
+    
+  if (error) throw error;
+}
