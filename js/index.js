@@ -503,14 +503,6 @@ window.updateQty = (index, delta) => {
   updateCartUI();
 };
 
-window.updateQty = (index, delta) => {
-  if (!cart[index]) return;
-  cart[index].qty += delta;
-  if (cart[index].qty <= 0) cart.splice(index, 1);
-  saveCartToStorage();
-  updateCartUI();
-};
-
 window.removeFromCart = (index) => {
   cart.splice(index, 1);
   saveCartToStorage();

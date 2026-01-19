@@ -7,20 +7,21 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* === UTILIDADES AUXILIARES === */
 
-// Extrae el nombre del archivo de una URL pública de Supabase
-function getFileNameFromUrl(url) {
-  if (!url || !url.includes('/storage/v1/object/public/')) return null;
-  return url.split('/').pop();
+function getPathFromPublicUrl(url) {
+  // Busca '/storage/v1/object/public/{bucket}/' y devuelve lo que viene después
+  const marker = '/storage/v1/object/public/';
+  const idx = url.indexOf(marker);
+  if (idx === -1) return null;
+  return url.substring(idx + marker.length).split('/').slice(1).join('/'); // elimina el bucket
 }
 
-// Borra físicamente un archivo del Storage
 async function deletePhysicalFile(bucket, url) {
-  const fileName = getFileNameFromUrl(url);
-  if (!fileName) return;
-
-  const { error } = await supabase.storage.from(bucket).remove([fileName]);
-  if (error) console.error(`Error borrando archivo ${fileName}:`, error);
+  const path = getPathFromPublicUrl(url);
+  if (!path) return;
+  const { error } = await supabase.storage.from(bucket).remove([path]);
+  if (error) console.error(`Error borrando archivo ${path}:`, error);
 }
+
 
 /* === CATEGORÍAS === */
 

@@ -333,9 +333,8 @@ window.loadOrdersSummary = async () => {
         const percentage = parseFloat(deductionValue) || 0;
         if (deductionInput) deductionInput.value = percentage;
         
-        // Inicialización de totales
-        let totalRev = 0;     // Ventas Brutas (Suma total de pedidos)
-        let totalProfit = 0;  // Tu Ganancia
+        let totalRev = 0;     
+        let totalProfit = 0;  
         let totalTra = 0;
         let totalZelle = 0;
         let totalUsd = 0;
@@ -343,31 +342,22 @@ window.loadOrdersSummary = async () => {
         if (!orders || orders.length === 0) {
             container.innerHTML = `<p style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">No hay pedidos.</p>`;
             updateStatsUI(0, 0, 0, 0, 0); 
-            if(document.getElementById('total-net')) document.getElementById('total-net').innerText = "$0.00";
             return;
         }
 
         container.innerHTML = orders.map(order => {
-            // EXTRACCIÓN ROBUSTA DEL PRECIO:
-            // Convertimos "total_text" (ej: "$ 1.250,00") a número puro
             const rawPrice = String(order.total_text || "0")
-                .replace(/\./g, '')     // Quita puntos de miles
-                .replace(',', '.')      // Cambia coma decimal por punto
-                .replace(/[^0-9.]/g, ""); // Quita símbolos de moneda
+                .replace(/\./g, '')     
+                .replace(',', '.')      
+                .replace(/[^0-9.]/g, ""); 
             
             const price = parseFloat(rawPrice) || 0;
             const method = (order.payment_method || "").toLowerCase();
-
-            // CÁLCULO DE GANANCIA (Basado en el porcentaje sobre el total bruto de cada pedido)
             const myProfit = price * (percentage / 100);
 
-            // SUMA BRUTA TOTAL (Lo que pediste: suma total de cada pedido)
             totalRev += price; 
-            
-            // Suma de ganancias acumuladas
             totalProfit += myProfit; 
 
-            // Clasificación por método
             if (method.includes("zelle") || method.includes("mlc")) {
                 totalZelle += price;
             } else if (method.includes("tra") || method.includes("cup") || method.includes("móvil")) {
@@ -380,40 +370,40 @@ window.loadOrdersSummary = async () => {
                 <div class="order-card">
                     <div class="order-header">
                         <span style="font-size: 0.7rem; color: var(--text-muted);">#${String(order.id).slice(-5)}</span>
-                        <span class="order-total">$${price.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                        <span class="order-total">$${price.toLocaleString(undefined, {minimumFractionDigits: 3, maximumFractionDigits: 3})}</span>
                     </div>
                     <p style="font-size: 0.9rem; margin: 5px 0;">👤 ${order.customer_name}</p>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
                         <span style="font-size: 0.7rem; background: rgba(255,255,255,0.1); padding: 3px 8px; border-radius: 5px;">💳 ${order.payment_method}</span>
                         <span style="font-size: 0.75rem; color: var(--accent); font-weight: bold;">
-                           Ganancia: $${myProfit.toLocaleString(undefined, {minimumFractionDigits: 2})}
+                           Ganancia: $${myProfit.toLocaleString(undefined, {minimumFractionDigits: 3, maximumFractionDigits: 3})}
                         </span>
                     </div>
                 </div>
             `;
         }).join('');
 
-        // ACTUALIZAR INTERFAZ
-        document.getElementById('total-revenue').innerText = `$${totalRev.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+        // Actualización de la Interfaz con 3 decimales
+        document.getElementById('total-revenue').innerText = `$${totalRev.toLocaleString(undefined, {minimumFractionDigits: 3, maximumFractionDigits: 3})}`;
         if(document.getElementById('total-net')) {
-            document.getElementById('total-net').innerText = `$${totalProfit.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('total-net').innerText = `$${totalProfit.toLocaleString(undefined, {minimumFractionDigits: 3, maximumFractionDigits: 3})}`;
         }
-        document.getElementById('total-tra').innerText = `$${totalTra.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-        document.getElementById('total-zelle').innerText = `$${totalZelle.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-        document.getElementById('total-usd').innerText = `$${totalUsd.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+        document.getElementById('total-tra').innerText = `$${totalTra.toLocaleString(undefined, {minimumFractionDigits: 3, maximumFractionDigits: 3})}`;
+        document.getElementById('total-zelle').innerText = `$${totalZelle.toLocaleString(undefined, {minimumFractionDigits: 3, maximumFractionDigits: 3})}`;
+        document.getElementById('total-usd').innerText = `$${totalUsd.toLocaleString(undefined, {minimumFractionDigits: 3, maximumFractionDigits: 3})}`;
         document.getElementById('total-orders-count').innerText = orders.length;
 
     } catch (e) {
-        console.error(e);
+        console.error("Error en reporte:", e);
         showToast("Error en reporte", "error");
     }
 };
 
 function updateStatsUI(rev, tra, zelle, usd, count) {
-    if(document.getElementById('total-revenue')) document.getElementById('total-revenue').innerText = `$${rev.toFixed(2)}`;
-    if(document.getElementById('total-tra')) document.getElementById('total-tra').innerText = `$${tra.toFixed(2)}`;
-    if(document.getElementById('total-zelle')) document.getElementById('total-zelle').innerText = `$${zelle.toFixed(2)}`;
-    if(document.getElementById('total-usd')) document.getElementById('total-usd').innerText = `$${usd.toFixed(2)}`;
+    if(document.getElementById('total-revenue')) document.getElementById('total-revenue').innerText = `$${rev.toFixed(3)}`;
+    if(document.getElementById('total-tra')) document.getElementById('total-tra').innerText = `$${tra.toFixed(3)}`;
+    if(document.getElementById('total-zelle')) document.getElementById('total-zelle').innerText = `$${zelle.toFixed(3)}`;
+    if(document.getElementById('total-usd')) document.getElementById('total-usd').innerText = `$${usd.toFixed(3)}`;
     if(document.getElementById('total-orders-count')) document.getElementById('total-orders-count').innerText = count;
 }
 
@@ -421,8 +411,12 @@ window.handleClearAllOrders = async () => {
     if (await customConfirm("¿VACIAR TODO?", "Borrará pedidos y comprobantes.")) {
         try {
             await api.deleteAllOrdersData();
-            loadOrdersSummary();
-        } catch (e) { showToast("Error", "error"); }
+            showToast("Datos borrados", "success");
+            refreshData();
+        } catch (e) {
+            console.error(e);
+            showToast("Error al borrar datos", "error");
+        }
     }
 };
 
