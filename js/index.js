@@ -113,7 +113,7 @@ async function init() {
       setTimeout(() => {
         ocultarSplash(splash);
         sessionStorage.setItem('cuban_store_splash_seen', 'true');
-      }, 3000);
+      }, 4000);
     } else {
       ocultarSplash(splash);
     }

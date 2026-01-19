@@ -20,10 +20,16 @@ window.handleLogin = async () => {
     try {
         btn.innerText = "Verificando...";
         btn.disabled = true;
-        await api.loginAdmin(user, pass);
+        
+        // El loginAdmin de tu api.js ya devuelve el objeto completo del usuario
+        const userData = await api.loginAdmin(user, pass);
+        
         localStorage.setItem('admin_token', 'active_session');
+        localStorage.setItem('admin_role', userData.role); // Guardamos el rol (admin/vendedor)
+        localStorage.setItem('admin_username', userData.username);
+        
         showDashboard();
-        showToast("¡Bienvenido!", "success");
+        showToast(`¡Bienvenido ${userData.username}!`, "success");
     } catch (e) {
         errorMsg.style.display = 'block';
         btn.innerText = "Entrar al Sistema";
@@ -33,12 +39,29 @@ window.handleLogin = async () => {
 
 window.handleLogout = () => {
     localStorage.removeItem('admin_token');
+    localStorage.removeItem('admin_role');
+    localStorage.removeItem('admin_username');
     location.reload();
 };
 
 function showDashboard() {
+    const role = localStorage.getItem('admin_role');
+    const cardReports = document.getElementById('card-reports');
+
     document.getElementById('modal-login').classList.remove('active');
     document.getElementById('admin-content').style.display = 'block';
+
+    // RESTRICCIÓN DE ROLES
+    if (role === 'vendedor') {
+        // Ocultar tarjeta de reportes
+        if (cardReports) cardReports.style.display = 'none';
+        console.log("Acceso limitado: Rol Vendedor");
+    } else {
+        // Mostrar todo si es admin
+        if (cardReports) cardReports.style.display = 'block';
+        console.log("Acceso total: Rol Admin");
+    }
+
     refreshData();
 }
 
@@ -48,14 +71,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// --- FUNCIONES DE MODALES ---
 window.openModal = async (modalId) => {
+  const role = localStorage.getItem('admin_role');
+
+  // Si intenta entrar a reportes y no es admin, bloqueamos
+  if (modalId === 'modal-orders' && role !== 'admin') {
+      showToast("Acceso denegado: Solo Administradores", "error");
+      return;
+  }
+
   const modal = document.getElementById(modalId);
   if(!modal) return;
 
   modal.classList.add('active');
   document.body.style.overflow = 'hidden';
   
+  // ... resto del código original de openModal ...
   if (modalId === 'modal-store' || modalId === 'modal-payments') { 
       await refreshData(); 
       if (modalId === 'modal-store') showMainPanel(); 
