@@ -1,6 +1,11 @@
--- WARNING: This schema is for context only and is not meant to be run.
--- Table order and constraints may not be valid for execution.
-
+CREATE TABLE public.admin_users (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  username text NOT NULL UNIQUE,
+  password text NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  role text DEFAULT 'vendedor'::text,
+  CONSTRAINT admin_users_pkey PRIMARY KEY (id)
+);
 CREATE TABLE public.categories (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   name text NOT NULL,
@@ -10,18 +15,17 @@ CREATE TABLE public.categories (
 );
 CREATE TABLE public.orders (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
-  order_id text NOT NULL UNIQUE,
-  customer_name text NOT NULL,
-  phone text NOT NULL,
-  address text NOT NULL,
+  order_id text NOT NULL,
+  customer_name text,
+  phone text,
+  address text,
   reference text,
-  items jsonb NOT NULL,
-  total_base numeric NOT NULL,
-  total_text text NOT NULL,
-  payment_method text NOT NULL,
+  items jsonb,
+  total_text text,
+  payment_method text,
   receipt_url text,
   status text DEFAULT 'pending'::text,
-  created_at timestamp with time zone DEFAULT now(),
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
   CONSTRAINT orders_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.payment_methods (
@@ -42,6 +46,14 @@ CREATE TABLE public.products (
   image_url text,
   active boolean DEFAULT true,
   created_at timestamp with time zone DEFAULT now(),
+  stock numeric DEFAULT 0,
+  precio_compra numeric NOT NULL DEFAULT 0,
+  ganancias numeric DEFAULT (price - precio_compra),
   CONSTRAINT products_pkey PRIMARY KEY (id),
   CONSTRAINT products_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id)
+);
+CREATE TABLE public.settings (
+  key text NOT NULL,
+  value text,
+  CONSTRAINT settings_pkey PRIMARY KEY (key)
 );

@@ -730,3 +730,46 @@ input:focus, select:focus {
         border: 2px solid currentColor;
     }
 }
+
+/* Agrega al final del archivo */
+
+/* ESTILOS PARA TABLA DE INVERSIÓN */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+thead {
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 2px solid var(--glass-border);
+}
+
+th, td {
+  padding: 12px;
+  text-align: left;
+  font-size: 0.85rem;
+}
+
+tbody tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.3s;
+}
+
+tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* Responsive para tabla */
+@media (max-width: 768px) {
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  
+  th, td {
+    padding: 10px 8px;
+    font-size: 0.8rem;
+  }
+}

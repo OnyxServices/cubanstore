@@ -48,8 +48,8 @@ function trackCategoryView(categoryName, products) {
 
 
 // --- Sonidos ---
-const soundAddCart = new Audio('https://onyxservices.github.io/cubanstore/sound/agregado.mp3');
-const soundNewProduct = new Audio('https://onyxservices.github.io/cubanstore/sound/new.mp3');
+const soundAddCart = new Audio('https://onyxservices.github.io/onyxchop/sound/agregado.mp3');
+const soundNewProduct = new Audio('https://onyxservices.github.io/onyxchop/sound/new.mp3');
 
 function isProductNew(dateString) {
   if (!dateString) return false;
@@ -951,7 +951,7 @@ window.confirmMlcPayment = async () => {
 
     // CONSTRUCCIÓN DEL MENSAJE CORREGIDA (Incluyendo Referencia)
     const text = encodeURIComponent(
-      `👑 *NUEVO PAGO MLC*\nPedido: #${orderId}\n\n` +
+      `👑 *NUEVO PEDIDO - MLC | Onyx Chop*\nPedido: #${orderId}\n\n` +
       `👤 *Cliente:* ${name}\n` +
       `📍 *Dirección:* ${addr}\n` +
       (ref ? `🏠 *Referencia:* ${ref}\n` : '') + // <--- Se añade esta línea al mensaje
@@ -1067,7 +1067,7 @@ window.confirmTraPayment = async () => {
 
     // 6. Estructura de WhatsApp idéntica a Zelle
     const text = encodeURIComponent(
-      `👑 *NUEVA TRANSFERENCIA*\nPedido: #${orderId}\n\n` +
+      `👑 *NUEVO PEDIDO - Zelle | Onyx Chop*\nPedido: #${orderId}\n\n` +
       `👤 *Cliente:* ${name}\n` +
       `📍 *Dirección:* ${addr}\n` +
       (ref ? `🏠 *Ref:* ${ref}\n` : '') +
@@ -1165,7 +1165,7 @@ window.sendOrder = async () => {
 
         // Construir mensaje de WhatsApp
         const text = encodeURIComponent(
-          `👑 *NUEVO PEDIDO | CUBAN STORE*\n` +
+          `👑 *NUEVO PEDIDO | Onyx Chop*\n` +
           `Pedido: #${orderId}\n\n` +
           `👤 *Cliente:* ${name}\n` +
           `📍 *Dirección:* ${addr}\n` +

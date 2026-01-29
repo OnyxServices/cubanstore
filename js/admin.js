@@ -45,24 +45,27 @@ window.handleLogout = () => {
 };
 
 function showDashboard() {
-    const role = localStorage.getItem('admin_role');
-    const cardReports = document.getElementById('card-reports');
-
-    document.getElementById('modal-login').classList.remove('active');
-    document.getElementById('admin-content').style.display = 'block';
-
-    // RESTRICCIÓN DE ROLES
-    if (role === 'vendedor') {
-        // Ocultar tarjeta de reportes
-        if (cardReports) cardReports.style.display = 'none';
-        console.log("Acceso limitado: Rol Vendedor");
-    } else {
-        // Mostrar todo si es admin
-        if (cardReports) cardReports.style.display = 'block';
-        console.log("Acceso total: Rol Admin");
-    }
-
-    refreshData();
+  const role = localStorage.getItem('admin_role');
+  const cardReports = document.getElementById('card-reports');
+  const cardInvestment = document.getElementById('card-investment'); // NUEVA
+  
+  document.getElementById('modal-login').classList.remove('active');
+  document.getElementById('admin-content').style.display = 'block';
+  
+  // RESTRICCIÓN DE ROLES
+  if (role === 'vendedor') {
+    // Ocultar tarjetas de admin
+    if (cardReports) cardReports.style.display = 'none';
+    if (cardInvestment) cardInvestment.style.display = 'none'; // NUEVA
+    console.log("Acceso limitado: Rol Vendedor");
+  } else {
+    // Mostrar todo si es admin
+    if (cardReports) cardReports.style.display = 'block';
+    if (cardInvestment) cardInvestment.style.display = 'block'; // NUEVA
+    console.log("Acceso total: Rol Admin");
+  }
+  
+  refreshData();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -96,6 +99,10 @@ window.openModal = async (modalId) => {
     await loadOrdersSummary(); 
     if (ordersInterval) clearInterval(ordersInterval);
     ordersInterval = setInterval(() => loadOrdersSummary(), 15000); 
+
+// NUEVO: Cargar datos de inversión
+  if (modalId === 'modal-investment') { 
+    await loadInvestmentData(); 
   }
 };
 
@@ -451,4 +458,80 @@ window.handleClearAllOrders = async () => {
     }
 };
 
+
+// --- FUNCIÓN PARA CARGAR DATOS DE INVERSIÓN ---
+window.loadInvestmentData = async () => {
+  try {
+    // 1. Obtener productos con precio_compra (si no existe, agregar campo en BD)
+    const products = allProducts || [];
+    
+    // Variables para cálculos totales
+    let totalInvestment = 0;
+    let totalSaleValue = 0;
+    let totalProfit = 0;
+    let productCountWithCost = 0;
+    
+    // Limpiar tabla
+    const tableBody = document.getElementById('investment-products-list');
+    tableBody.innerHTML = '';
+    
+    // Procesar cada producto
+    products.forEach(product => {
+      // Si no tiene precio_compra, usar 0 como costo
+      const costoCompra = parseFloat(product.precio_compra) || 0;
+      const precioVenta = parseFloat(product.price) || 0;
+      const stock = parseFloat(product.stock) || 0;
+      
+      // Cálculos individuales
+      const inversionProducto = costoCompra * stock;
+      const valorVentaProducto = precioVenta * stock;
+      const gananciaProducto = valorVentaProducto - inversionProducto;
+      const margenProducto = costoCompra > 0 ? 
+        ((precioVenta - costoCompra) / costoCompra * 100).toFixed(1) : 
+        'N/A';
+      
+      // Acumular totales (solo productos con costo > 0)
+      if (costoCompra > 0) {
+        totalInvestment += inversionProducto;
+        totalSaleValue += valorVentaProducto;
+        totalProfit += gananciaProducto;
+        productCountWithCost++;
+      }
+      
+      // Crear fila de tabla
+      const row = document.createElement('tr');
+      row.style.borderBottom = '1px solid var(--glass-border)';
+      row.innerHTML = `
+        <td style="padding: 12px;">${product.name}</td>
+        <td style="padding: 12px;">$${costoCompra.toFixed(3)}</td>
+        <td style="padding: 12px;">$${precioVenta.toFixed(3)}</td>
+        <td style="padding: 12px;">${stock}</td>
+        <td style="padding: 12px; color: ${inversionProducto > 0 ? '#ef4444' : 'var(--text-muted)'};">$${inversionProducto.toFixed(3)}</td>
+        <td style="padding: 12px; color: var(--primary);">$${valorVentaProducto.toFixed(3)}</td>
+        <td style="padding: 12px; color: ${gananciaProducto >= 0 ? '#10b981' : '#ef4444'};">$${gananciaProducto.toFixed(3)}</td>
+        <td style="padding: 12px; color: ${margenProducto > 0 ? '#10b981' : (margenProducto < 0 ? '#ef4444' : 'var(--text-muted)')};">
+          ${typeof margenProducto === 'string' ? margenProducto : margenProducto + '%'}
+        </td>
+      `;
+      tableBody.appendChild(row);
+    });
+    
+    // Calcular métricas generales
+    const avgMargin = productCountWithCost > 0 ? 
+      ((totalSaleValue - totalInvestment) / totalInvestment * 100).toFixed(1) : 0;
+    
+    const roi = totalInvestment > 0 ? 
+      (totalProfit / totalInvestment * 100).toFixed(1) : 0;
+    
+    // Actualizar UI
+    document.getElementById('total-investment').innerText = `$${totalInvestment.toFixed(3)}`;
+    document.getElementById('total-profit').innerText = `$${totalProfit.toFixed(3)}`;
+    document.getElementById('avg-margin').innerText = `${avgMargin}%`;
+    document.getElementById('roi-estimated').innerText = `${roi}%`;
+    
+  } catch (error) {
+    console.error('Error cargando datos de inversión:', error);
+    showToast('Error al calcular inversión', 'error');
+  }
+};
 refreshData();
