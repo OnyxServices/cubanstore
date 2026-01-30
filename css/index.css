@@ -333,22 +333,25 @@
     box-shadow: var(--shadow); 
   }
 
-  .card-media {
-    width: 100%; 
-    aspect-ratio: 1/1; 
-    overflow: hidden; 
+ .card-media {
+    width: 100%;
+    height: 180px; /* Altura fija para que todas las tarjetas sean iguales */
+    overflow: hidden;
     background: #111; 
-    display: flex; 
-    align-items: center; 
+    display: flex;
+    align-items: center;
     justify-content: center;
-  }
+    padding: 10px; /* Espaciado interno para que la imagen no toque los bordes */
+}
 
-  .card-media img {
-   width: 100%; 
-   height: 100%; 
-   object-fit: cover; 
-   transition: 0.5s;
- }
+.card-media img {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain; /* Ajusta la imagen sin deformarla */
+    transition: 0.5s;
+}
 
  .card-body {
     padding: 15px;
@@ -445,6 +448,12 @@
     right: 15px;
     font-size: 0.7rem;
   }
+}
+
+@media (max-width: 480px) {
+    .card-media {
+        height: 150px; 
+    }
 }
 
 @media (max-width: 380px) {
