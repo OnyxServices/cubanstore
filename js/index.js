@@ -683,7 +683,7 @@ function formatWhatsAppMessage(orderId, form, totalText, paymentMethod = "Efecti
   const items = AppState.cart.map(i => `┃ 📦 *${i.qty}x* ${i.name}`).join('\n');
   const date = new Date().toLocaleDateString();
 
-  return `✨ *NUEVA ORDEN - ONYX SHOP* ✨
+  return `✨ *_NUEVA ORDEN - ONYX SHOP_* ✨
 ┏━━━━━━━━━━━━━━━━━━━━━┓
 ┃ 🆔 *ID:* #${orderId}
 ┃ 📅 *FECHA:* ${date}
@@ -705,7 +705,7 @@ ${items}
 💰 *TOTAL A PAGAR:* *${totalText}*
 ──────────────────────
 
-🚀 _Se le enviara um mensage cuando se confirme su pedido, Gracias por elegirnos._`;
+🚀 _Se le enviara um mensaje al Whatsapp cuando se confirme su pedido, Gracias por elegirnos._`;
 }
 
 // Globales para HTML

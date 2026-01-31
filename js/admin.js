@@ -1,9 +1,4 @@
-/**
- * admin.js - Gestión del Panel de Administración
- * Correcciones: Importación de API, unificación de funciones de inversión y consistencia de datos.
- */
-
-import * as api from './api.js'; // Importamos todo el módulo como 'api'
+import * as api from './api.js';
 
 /**
  * ==========================================
@@ -339,16 +334,17 @@ function renderPaymentMethods() {
     `).join('');
 }
 
-/**
+/** 
  * ==========================================
- *   MÓDULO: REPORTES Y VENTAS
+ *   MODIFICACIÓN 1: Mostrar Moneda en Card
  * ==========================================
  */
-
 window.loadOrdersSummary = async () => {
     const container = document.getElementById('orders-detailed-list');
     const deductionInput = document.getElementById('setting-deduction');
     
+    container.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding:50px; color:var(--text-muted);">⌛ Sincronizando transacciones...</div>`;
+
     try {
         const [orders, deductionValue] = await Promise.all([
             api.getOrders(),
@@ -358,84 +354,85 @@ window.loadOrdersSummary = async () => {
         const percentage = parseFloat(deductionValue) || 0;
         if (deductionInput) deductionInput.value = percentage;
         
-        let stats = { totalRev: 0, totalProfit: 0, totalTra: 0, totalZelle: 0, totalUsd: 0 };
+        let stats = { totalRev: 0, totalProfit: 0, totalTra: 0, totalZelle: 0, totalUsd: 0, flagged: 0 };
         
         if (!orders || orders.length === 0) {
-            container.innerHTML = `<p style="text-align:center; padding:40px; color:var(--text-muted);">No hay pedidos.</p>`;
+            container.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding:60px;"><h3>Sin actividad comercial</h3></div>`;
             updateStatsUI(stats, 0); 
             return;
         }
 
-        // --- RENDERIZADO DE ÓRDENES ---
+        orders.sort((a, b) => (b.ocr_fraud_flag ? 1 : 0) - (a.ocr_fraud_flag ? 1 : 0));
+
         container.innerHTML = orders.map(order => {
-            const price = parseFloat(String(order.total_text || "0").replace(/[^0-9.]/g, "")) || 0;
-            const method = (order.payment_method || "").toLowerCase();
-            const myProfit = price * (percentage / 100);
+            const rawPrice = order.total_amount || String(order.total_text || "0").replace(/[^0-9.]/g, "");
+            const price = Math.round(parseFloat(rawPrice) * 100) / 100 || 0;
+            const myProfit = Math.round((price * (percentage / 100)) * 100) / 100;
+            
+            // Identificación de moneda/método
+            const method = (order.payment_method || "No especificado");
+            const methodLower = method.toLowerCase();
+            
+            stats.totalRev = Math.round((stats.totalRev + price) * 100) / 100; 
+            stats.totalProfit = Math.round((stats.totalProfit + myProfit) * 100) / 100; 
 
-            const isReceiptMethod = method.includes("zelle") || method.includes("mlc") || method.includes("tra") || method.includes("cup");
-            const receiptUrl = order.receipt_url;
-
-            stats.totalRev += price; 
-            stats.totalProfit += myProfit; 
-
-            if (method.includes("zelle") || method.includes("mlc")) stats.totalZelle += price;
-            else if (method.includes("tra") || method.includes("cup")) stats.totalTra += price;
+            if (methodLower.includes("zelle")) stats.totalZelle += price;
+            else if (methodLower.includes("tra") || methodLower.includes("cup") || methodLower.includes("mlc")) stats.totalTra += price;
             else stats.totalUsd += price;
 
-            // Retornamos el HTML de la tarjeta
+            if (order.ocr_fraud_flag) stats.flagged++;
+
+            const isFraud = order.ocr_fraud_flag;
+            const isVerified = order.ocr_verified;
+            
             return `
-                <div class="order-card">
-                    <div class="order-header">
-                        <span style="font-size: 0.7rem;">ID: ${String(order.id).slice(-5)}</span>
-                        <span class="order-total">$${price.toFixed(2)}</span>
+                <div class="order-card ${isFraud ? 'is-fraud' : (isVerified ? 'is-verified' : '')}">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+                        <span style="font-size:0.65rem; color:var(--text-muted);">#${String(order.id).slice(-6).toUpperCase()}</span>
+                        ${isFraud ? '<span class="status-badge bg-off">⚠️ FRAUDE</span>' : (isVerified ? '<span class="status-badge bg-on">✅ OK</span>' : '<span class="status-badge">⏳ PENDIENTE</span>')}
                     </div>
-                    <p>👤 ${order.customer_name}</p>
-                    <div style="display:flex; justify-content:space-between; margin-top:10px; align-items: center;">
-                        <span class="badge">💳 ${order.payment_method}</span>
-                        <span style="color:var(--accent); font-weight:bold;">+$${myProfit.toFixed(2)}</span>
+                    <h4 style="margin-bottom:2px;">${order.customer_name || 'Anónimo'}</h4>
+                    <!-- CAMBIO: Mostrar Tipo de Moneda -->
+                    <div style="margin-bottom:10px;">
+                        <span style="font-size:0.7rem; padding:2px 8px; border-radius:10px; background:rgba(255,255,255,0.1); color:var(--accent);">
+                            💰 ${method}
+                        </span>
                     </div>
-                    
-                    ${isReceiptMethod && receiptUrl ? `
-                        <div class="receipt-actions" style="margin-top:15px; display:grid; grid-template-columns: repeat(3, 1fr); gap:5px;">
-                            <button class="btn btn-primary-glass" style="font-size:0.65rem; padding:5px;" onclick="window.viewReceipt('${receiptUrl}')">
-                                👁️ Ver
-                            </button>
-                            <button class="btn btn-edit" style="font-size:0.65rem; padding:5px;" onclick="window.downloadReceipt('${receiptUrl}', '${order.id}')">
-                                📥 Bajar
-                            </button>
-                            <button class="btn btn-add" style="font-size:0.65rem; padding:5px; background: #6366f1; color: white;" onclick="window.runOCR('${receiptUrl}', '${order.id}')">
-                                🔍 OCR
-                            </button>
-                        </div>
-                    ` : ''}
-                </div>
-            `;
+
+                    <div style="background:rgba(0,0,0,0.2); padding:10px; border-radius:12px; display:flex; justify-content:space-between; margin-top:10px;">
+                        <span>$${price.toFixed(2)}</span>
+                        <span style="color:var(--accent);">+$${myProfit.toFixed(2)}</span>
+                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px; margin-top:10px;">
+                        <button class="btn btn-primary-glass" onclick="window.viewReceipt('${order.receipt_url}')">👁️</button>
+                        <button class="btn btn-primary-glass" onclick="window.downloadReceipt('${order.receipt_url}', '${order.id}')">📥</button>
+                        <button class="btn btn-add" onclick="window.runOCR('${order.receipt_url}', '${order.id}')">🔍</button>
+                    </div>
+                </div>`;
         }).join('');
 
         updateStatsUI(stats, orders.length);
 
     } catch (e) {
-        console.error("Error al cargar reportes:", e);
-        showToast("Error al cargar reportes", "error");
+        console.error("Error financiero:", e);
     }
 };
 
+// Helper para actualizar los contadores superiores
 function updateStatsUI(stats, count) {
-    const mapping = {
-        'total-revenue': stats.totalRev,
-        'total-tra': stats.totalTra,
-        'total-zelle': stats.totalZelle,
-        'total-usd': stats.totalUsd,
-        'total-net': stats.totalProfit
-    };
-    
-    Object.keys(mapping).forEach(id => {
+    const animateValue = (id, value) => {
         const el = document.getElementById(id);
-        if (el) el.innerText = `$${mapping[id].toFixed(2)}`;
-    });
+        if (el) el.innerText = `$${value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    };
+
+    animateValue('total-revenue', stats.totalRev);
+    animateValue('total-tra', stats.totalTra);
+    animateValue('total-zelle', stats.totalZelle);
+    animateValue('total-usd', stats.totalUsd);
+    animateValue('total-net', stats.totalProfit);
 
     const countEl = document.getElementById('total-orders-count');
-    if (countEl) countEl.innerText = count;
+    if (countEl) countEl.innerHTML = `${count} <small style="font-size:0.7rem; display:block; color:${stats.flagged > 0 ? 'var(--danger)' : 'var(--success)'}">${stats.flagged} Alertas</small>`;
 }
 
 /**
@@ -454,33 +451,37 @@ async function renderInvestmentAnalysis() {
         const tableBody = document.getElementById('investment-products-list');
         const percentage = parseFloat(deductionValue) || 0;
         
-        let globalInvTotal = 0;
-        let globalGananciaPotencial = 0;
-        let totalRevenuePotencial = 0;
-        let globalRealProfit = 0;
+        // Inicializar contadores
+        let globalInvTotal = 0;        // Lo que pagaste por el stock actual
+        let globalGananciaPotencial = 0; // Lo que ganarás al vender ese stock
+        let globalRealRevenue = 0;     // Total bruto vendido (dinero que entró)
+        let globalRealProfit = 0;      // Tu ganancia neta real (comisiones acumuladas)
 
-        const completedOrders = orders.filter(o => o.status === 'completed');
+        // 1. Calcular lo que ya se ha vendido (Ganancia Real y Retorno Bruto)
+        const completedOrders = orders.filter(o => !o.ocr_fraud_flag); // Excluir fraudes
         completedOrders.forEach(order => {
-            const price = parseFloat(String(order.total_text || "0").replace(/[^0-9.]/g, "")) || 0;
+            const price = parseFloat(order.total_amount || String(order.total_text || "0").replace(/[^0-9.]/g, "")) || 0;
+            globalRealRevenue += price;
             globalRealProfit += (price * (percentage / 100));
         });
 
         tableBody.innerHTML = '';
+
+        // 2. Calcular sobre el Inventario Actual
         products.forEach(p => {
             const costo = parseFloat(p.cost || 0);
             const precioVenta = parseFloat(p.price || 0);
             const stock = parseInt(p.stock || 0);
 
-            const invTotalProducto = costo * stock;
+            // Cálculos por producto
+            const invTotalProducto = costo * stock; 
             const gananciaUnitaria = precioVenta - costo;
             const gananciaTotalProducto = gananciaUnitaria * stock;
-            const ventaTotalProducto = precioVenta * stock;
-            
+            const margenProducto = costo > 0 ? (gananciaUnitaria / costo) * 100 : 0;
+
+            // Acumuladores globales
             globalInvTotal += invTotalProducto;
             globalGananciaPotencial += gananciaTotalProducto;
-            totalRevenuePotencial += ventaTotalProducto;
-
-            const margenProducto = costo > 0 ? (gananciaUnitaria / costo) * 100 : 0;
 
             tableBody.innerHTML += `
                 <tr style="border-bottom: 1px solid var(--glass-border); font-size: 0.85rem;">
@@ -495,32 +496,36 @@ async function renderInvestmentAnalysis() {
             `;
         });
 
-        const deficit = globalInvTotal - globalRealProfit;
+        // 3. Lógica de Punto de Equilibrio (Break Even)
+        // El punto de equilibrio se alcanza cuando el Ingreso Bruto (Revenue) cubre la Inversión.
+        const deficit = globalInvTotal - globalRealRevenue;
         const breakEvenStatusEl = document.getElementById('break-even-status');
         const progressEl = document.getElementById('recovery-progress');
         
-        const avgMarginDecimal = totalRevenuePotencial > 0 ? (globalGananciaPotencial / totalRevenuePotencial) : 0;
-        const totalStockUnits = products.reduce((a, b) => a + (b.stock || 0), 0);
-        const avgPrice = totalStockUnits > 0 ? (totalRevenuePotencial / totalStockUnits) : 0;
-        const avgProfitPerUnit = avgPrice * avgMarginDecimal;
-
-        if (deficit <= 0) {
-            breakEvenStatusEl.innerHTML = `<span style="color:#10b981;">✅ INVERSIÓN RECUPERADA</span>`;
+        if (globalInvTotal === 0) {
+            breakEvenStatusEl.innerHTML = `<span style="color:var(--text-muted);">Sin inversión activa</span>`;
+            progressEl.value = 0;
+        } else if (deficit <= 0) {
+            const superavit = Math.abs(deficit);
+            breakEvenStatusEl.innerHTML = `
+                <span style="color:#10b981;">✅ INVERSIÓN RECUPERADA</span>
+                <div style="font-size:0.7rem; color:#34d399;">Retorno: +$${superavit.toFixed(2)}</div>
+            `;
             progressEl.value = 100;
         } else {
-            const ventasFaltantes = avgProfitPerUnit > 0 ? Math.ceil(deficit / avgProfitPerUnit) : '---';
-            const porcentajeRecuperado = (globalRealProfit / globalInvTotal) * 100;
-            
+            const porcentajeRecuperado = (globalRealRevenue / globalInvTotal) * 100;
             breakEvenStatusEl.innerHTML = `
-                <span style="color:#ef4444;">Faltan ~$${deficit.toFixed(2)}</span>
+                <span style="color:#ef4444;">Faltan $${deficit.toFixed(2)} para recuperar</span>
                 <div style="font-size:0.7rem; color:var(--text-muted); font-weight:400;">
-                    Aprox. ${ventasFaltantes} ventas más
+                    Recuperado: ${porcentajeRecuperado.toFixed(1)}% de la inversión
                 </div>
             `;
             progressEl.value = porcentajeRecuperado;
         }
 
-        const format = (val) => `$${val.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+        // 4. Actualizar etiquetas superiores
+        const format = (val) => `$${val.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        
         document.getElementById('total-investment').innerText = format(globalInvTotal);
         document.getElementById('total-profit').innerText = format(globalGananciaPotencial);
         document.getElementById('total-real-profit').innerText = format(globalRealProfit);
@@ -650,33 +655,120 @@ window.downloadReceipt = async (url, orderId) => {
 };
 
 window.runOCR = async (imageUrl, orderId) => {
-    // Verificamos si la librería está cargada
     if (typeof Tesseract === 'undefined') {
         showToast("Error: Librería OCR no cargada", "error");
         return;
     }
 
-    showToast("⏳ Analizando imagen...", "info");
+    showToast("🔍 Comparando con historial de recibos...", "info");
 
     try {
-        const worker = await Tesseract.createWorker('spa'); // Idioma español
+        const orders = await api.getOrders();
+        const order = orders.find(o => String(o.id) === String(orderId));
+        const targetAmount = parseFloat(order.total_amount || 0);
+
+        const worker = await Tesseract.createWorker('spa');
         const ret = await worker.recognize(imageUrl);
         const text = ret.data.text;
         await worker.terminate();
 
-        console.log("Texto extraído de orden " + orderId + ":", text);
+        // 1. Extraer Referencia (números de 6 a 16 dígitos)
+        const refMatch = text.match(/\b\d{6,16}\b/); 
+        const detectedRef = refMatch ? refMatch[0] : null;
 
-        // Intentar buscar un número de referencia (ejemplo 6 a 12 dígitos)
-        const refMatch = text.match(/\b\d{6,12}\b/);
-        const referencia = refMatch ? refMatch[0] : "No encontrada";
+        // 2. Extraer Montos
+        const amountMatch = text.match(/[\d]{1,10}[.,][\d]{2}/g);
+        let detectedAmount = 0;
+        if (amountMatch) {
+            const cleanAmounts = amountMatch.map(a => parseFloat(a.replace('.', '').replace(',', '.')));
+            detectedAmount = Math.max(...cleanAmounts);
+        }
 
-        // Mostrar resultado
-        alert(`--- Análisis OCR ---\nID Orden: ${orderId.slice(-5)}\nReferencia detectada: ${referencia}\n\nTexto completo:\n${text.substring(0, 300)}...`);
+        let fraudReason = "";
+        let isFraud = false;
+
+        // --- LÓGICA DE COMPARACIÓN CON ANTIGUOS ---
+        if (detectedRef) {
+            // Llamada al API que busca en TODAS las órdenes previas
+            const duplicate = await api.checkReferenceDuplicate(detectedRef);
+            
+            if (duplicate && String(duplicate.order_id) !== String(orderId)) {
+                isFraud = true;
+                fraudReason = `RECIBO YA USADO: La referencia ${detectedRef} coincide con la orden #${String(duplicate.order_id).slice(-5)}`;
+            }
+        } else {
+            fraudReason = "No se detectó número de referencia legible";
+        }
+
+        // Validación de monto
+        const amountDiff = Math.abs(detectedAmount - targetAmount);
+        if (detectedAmount > 0 && amountDiff > 0.01) {
+            fraudReason += (fraudReason ? " | " : "") + "Discrepancia de monto";
+            // Si la diferencia es mucha, también marcar como sospechoso
+            if (amountDiff > (targetAmount * 0.1)) isFraud = true; 
+        }
+
+        // 3. Guardar resultado de seguridad en la BD
+        await api.saveOCRResults(orderId, {
+            detectedRef,
+            detectedAmount,
+            isFraud: isFraud,
+            notes: fraudReason
+        });
+
+        // 4. Renderizar UI del resultado
+        renderOCRUI(isFraud, detectedRef, detectedAmount, targetAmount, fraudReason, text);
         
+        // Refrescar lista para mostrar el borde rojo si es fraude
+        await loadOrdersSummary(); 
+
     } catch (error) {
         console.error("Error OCR:", error);
-        showToast("No se pudo leer la imagen", "error");
+        showToast("Error al procesar", "error");
     }
+};
+
+function renderOCRUI(isFraud, detectedRef, detectedAmount, targetAmount, reason, fullText) {
+    const contentEl = document.getElementById('ocr-content');
+    const isAmountOk = Math.abs(detectedAmount - targetAmount) < 0.01;
+
+    contentEl.innerHTML = `
+        <div style="background: ${isFraud ? 'rgba(244,63,94,0.2)' : 'rgba(16,185,129,0.2)'}; 
+                    border: 1px solid ${isFraud ? '#f43f5e' : '#10b981'}; 
+                    padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+            <h3 style="color: ${isFraud ? '#fb7185' : '#34d399'}; margin:0;">
+                ${isFraud ? '⚠️ ALERTA: Posible Fraude' : '✅ Comprobante Válido'}
+            </h3>
+            ${reason ? `<p style="margin:5px 0 0; font-size:0.8rem;">Causa: ${reason}</p>` : ''}
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+            <div class="stat-card" style="padding:10px; background:rgba(255,255,255,0.05)">
+                <small>Ref. Detectada</small>
+                <div style="font-weight:bold; color:${detectedRef ? '#fff' : '#f43f5e'}">${detectedRef || 'No hallada'}</div>
+            </div>
+            <div class="stat-card" style="padding:10px; background:rgba(255,255,255,0.05)">
+                <small>Monto Detectado</small>
+                <div style="font-weight:bold; color:${isAmountOk ? '#34d399' : '#fb7185'}">$${detectedAmount.toFixed(2)}</div>
+            </div>
+        </div>
+
+        <details>
+            <summary style="font-size:0.7rem; color:var(--text-muted); cursor:pointer;">Ver texto bruto del OCR</summary>
+            <pre style="font-size:0.6rem; background:#000; padding:10px; margin-top:10px; border-radius:8px; overflow-x:auto;">${fullText}</pre>
+        </details>
+    `;
+    document.getElementById('ocr-modal').classList.remove('hidden');
+}
+
+// Función auxiliar para mostrar el resultado en el modal
+window.showOCRResultModal = (htmlContent) => {
+    const modal = document.getElementById('ocr-modal');
+    const contentEl = document.getElementById('ocr-content');
+    
+    // Limpiamos el pre y añadimos el HTML
+    contentEl.innerHTML = htmlContent;
+    modal.classList.remove('hidden');
 };
 
 window.handleApplyMassPriceUpdate = async () => {
@@ -724,4 +816,24 @@ window.handleApplyMassPriceUpdate = async () => {
         btn.innerText = "Aplicar Cambio Masivo";
         btn.disabled = false;
     }
+};
+
+// Esta función ahora mostrará la notificación en la esquina
+window.showOCRModal = (content) => {
+    const modal = document.getElementById('ocr-modal');
+    const contentEl = document.getElementById('ocr-content');
+    
+    contentEl.innerText = content;
+    modal.classList.remove('hidden');
+
+    // Opcional: Auto-cerrar después de 30 segundos si es muy largo, 
+    // pero como tiene botón de cerrar, lo dejamos manual.
+    showToast("🔍 Resultado OCR listo en el panel lateral", "success");
+};
+
+window.closeOCRModal = () => {
+    const modal = document.getElementById('ocr-modal');
+    // Añadimos una pequeña clase de salida si quisieras, 
+    // pero ocultarlo directamente es más rápido:
+    modal.classList.add('hidden');
 };

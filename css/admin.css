@@ -790,3 +790,116 @@ tbody tr:hover {
     background: var(--primary);
     color: white;
 }
+
+/* --- NOTIFICACIÓN FLOTANTE OCR --- */
+.ocr-modal {
+  position: fixed;
+  bottom: 20px; /* Distancia del borde inferior */
+  right: 20px;  /* Distancia del borde derecho */
+  z-index: 10001;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  pointer-events: none; /* Permite hacer clic a través del contenedor invisible */
+  background: none;    /* Eliminamos el fondo oscuro */
+  backdrop-filter: none;
+  width: auto;
+  height: auto;
+}
+
+.ocr-modal.hidden {
+  display: none;
+}
+
+.ocr-box {
+  pointer-events: all; /* El contenido sí es cliqueable */
+  background: #1e293b; /* Color de fondo sólido y elegante */
+  color: #f1f5f9;
+  width: 350px;        /* Ancho tipo notificación */
+  max-height: 400px;
+  padding: 20px;
+  border-radius: 20px;
+  border: 1px solid var(--primary);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: slideInRight 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+.ocr-box pre {
+  white-space: pre-wrap;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  overflow-y: auto;
+  margin-top: 10px;
+  background: rgba(0,0,0,0.2);
+  padding: 10px;
+  border-radius: 10px;
+  color: #cbd5e1;
+}
+
+.ocr-box h3 {
+  font-size: 1rem;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Animación de entrada */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Colores de alerta para OCR */
+.ocr-box h4 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+}
+
+.ocr-box .status-danger {
+    color: #f87171;
+    background: rgba(248, 113, 113, 0.1);
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(248, 113, 113, 0.3);
+}
+
+.ocr-box .status-success {
+    color: #34d399;
+    background: rgba(52, 211, 153, 0.1);
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(52, 211, 153, 0.3);
+}
+
+/* admin.css */
+
+/* Tarjeta de orden marcada como fraude */
+.order-card.is-fraud {
+    border: 2px solid var(--danger);
+    background: linear-gradient(to bottom right, rgba(244, 63, 94, 0.1), transparent);
+    animation: pulse-border 2s infinite;
+}
+
+@keyframes pulse-border {
+    0% { border-color: rgba(244, 63, 94, 0.5); }
+    50% { border-color: rgba(244, 63, 94, 1); }
+    100% { border-color: rgba(244, 63, 94, 0.5); }
+}
+
+.order-card.is-verified {
+    border-left: 4px solid var(--success);
+}

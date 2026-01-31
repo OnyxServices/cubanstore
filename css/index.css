@@ -601,9 +601,96 @@
 .qty-controls {
   display: flex;
   align-items: center;
-  gap: 10px; 
+  gap: 12px;
   margin-top: 8px;
 }
+
+.qty-controls span {
+  min-width: 22px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--text-main);
+  font-size: 0.9rem;
+}
+
+.qty-controls button {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, #1a1a1d, #0f0f11);
+  color: var(--accent);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+  box-shadow: inset 0 0 0 rgba(0,0,0,0);
+}
+
+.qty-controls button i {
+  width: 16px;
+  height: 16px;
+}
+
+.qty-controls button:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.4),
+              0 4px 10px rgba(0,0,0,0.6);
+  transform: translateY(-1px);
+}
+
+/* Click */
+.qty-controls button:active {
+  transform: scale(0.92);
+  box-shadow: inset 0 3px 6px rgba(0,0,0,0.6);
+}
+
+.delete-btn {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  transition: var(--transition);
+}
+
+.delete-btn i {
+  width: 18px;
+  height: 18px;
+}
+
+/* Hover = advertencia */
+.delete-btn:hover {
+  border-color: var(--error);
+  color: var(--error);
+  background: rgba(220, 38, 38, 0.08);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+/* Click */
+.delete-btn:active {
+  transform: scale(0.9);
+}
+
+.qty-controls button:last-child {
+  background: var(--gradient);
+  color: var(--primary);
+  border-color: transparent;
+}
+
+.qty-controls button:last-child:hover {
+  filter: brightness(1.1);
+}
+
 
 .qty-btn {
   background: var(--secondary); 

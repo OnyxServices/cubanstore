@@ -323,3 +323,44 @@ export async function updatePricesByCategory(categoryId, percentage) {
 
   return true;
 }
+
+//----Verificar si una referencia ya existe en la tabla de seguridad
+
+export const checkReferenceDuplicate = async (referenceCode) => {
+    // Busca en la tabla de referencias únicas
+    const { data, error } = await supabase // O tu librería de conexión
+        .from('used_references')
+        .select('order_id, created_at')
+        .eq('reference_code', referenceCode)
+        .single();
+    
+    if (error && error.code !== 'PGRST116') throw error; // PGRST116 es "no encontrado"
+    return data; 
+};
+
+// 2. Guardar los resultados del OCR en la orden y en la tabla de referencias
+export const saveOCRResults = async (orderId, results) => {
+    // Actualizar la tabla de órdenes con auditoría
+    const { error: orderError } = await supabase
+        .from('orders')
+        .update({
+            ocr_reference_detected: results.detectedRef,
+            ocr_amount_detected: results.detectedAmount,
+            ocr_verified: true,
+            ocr_fraud_flag: results.isFraud,
+            status: results.isFraud ? 'flagged' : 'pending' // Opcional: marcar como sospechosa
+        })
+        .eq('id', orderId);
+
+    if (orderError) throw orderError;
+
+    // Si detectó una referencia y no es fraude, registrarla para el futuro
+    if (results.detectedRef && !results.isFraud) {
+        await supabase
+            .from('used_references')
+            .upsert({ 
+                reference_code: results.detectedRef, 
+                order_id: orderId 
+            });
+    }
+};
