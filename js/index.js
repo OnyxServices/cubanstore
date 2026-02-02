@@ -430,13 +430,15 @@ async function validateAndSubtractStock() {
 }
 
 /**
- * Función central de envío de orden.
- */
-/**
  * Función central de envío de orden corregida.
  */
 window.sendOrder = async () => {
-  // 1. Capturar elementos del formulario
+  // 1. VALIDACIÓN: Carrito vacío
+  if (AppState.cart.length === 0) {
+    return showTopError("Tu carrito está vacío. Añade al menos un producto.");
+  }
+
+  // 2. Capturar elementos del formulario
   const formEls = {
     name: document.getElementById('order-name'),
     phone: document.getElementById('order-phone'),
@@ -444,36 +446,50 @@ window.sendOrder = async () => {
     ref: document.getElementById('order-reference')
   };
 
-  // Limpiar estados de error previos
+  // Limpiar estados de error previos (remover bordes rojos)
   Object.values(formEls).forEach(el => el.classList.remove('invalid'));
 
-  // 2. Validación de Formulario
+  // 3. VALIDACIÓN: Formulario completo
   let isValid = true;
-  
+  let firstErrorField = null;
+
+  // Validar Nombre
   if (formEls.name.value.trim().length < 3) { 
     formEls.name.classList.add('invalid'); 
-    isValid = false; 
+    isValid = false;
+    if (!firstErrorField) firstErrorField = formEls.name;
   }
-  // Valida que el teléfono tenga 8 dígitos y empiece por 5 o 6
+  
+  // Validar Teléfono (8 dígitos, empieza con 5 o 6)
   if (!/^[56]\d{7}$/.test(formEls.phone.value.trim())) { 
     formEls.phone.classList.add('invalid'); 
     isValid = false; 
+    if (!firstErrorField) firstErrorField = formEls.phone;
   }
+
+  // Validar Dirección
   if (formEls.address.value.trim().length < 5) { 
     formEls.address.classList.add('invalid'); 
     isValid = false; 
+    if (!firstErrorField) firstErrorField = formEls.address;
+  }
+
+  // Validar Referencia (Ahora es obligatoria)
+  if (formEls.ref.value.trim().length < 3) { 
+    formEls.ref.classList.add('invalid'); 
+    isValid = false; 
+    if (!firstErrorField) firstErrorField = formEls.ref;
   }
 
   if (!isValid) {
-    return showTopError("Por favor, completa los datos de entrega correctamente.");
+    if (firstErrorField) firstErrorField.focus(); // Pone el cursor en el primer error
+    return showTopError("Por favor, completa todos los campos de entrega.");
   }
 
-  // 3. Detección de Moneda (Normalización)
-  // Convertimos a minúsculas y quitamos espacios para evitar errores de coincidencia
+  // 4. Detección de Moneda (Normalización)
   const currency = AppState.currentCurrency.toLowerCase().trim();
 
-  // 4. Lógica de derivación según el método de pago
-  // IMPORTANTE: Asegúrate que estos códigos coincidan con los de tu DB en Supabase
+  // 5. Lógica de derivación según el método de pago
   if (currency === 'z' || currency === 'zelle') {
     return openPaymentModal('zelle');
   }
@@ -486,7 +502,7 @@ window.sendOrder = async () => {
     return openPaymentModal('mlc');
   }
 
-  // 5. Si no es un método de pago con comprobante, procesar como pedido estándar (Efectivo/CUP)
+  // 6. Procesar como pedido estándar (Efectivo/CUP)
   await processStandardOrder(formEls);
 };
 
@@ -725,12 +741,19 @@ async function init() {
   lucide.createIcons();
   updateCartUI();
   
-  // Listener de Moneda
-  document.getElementById('payment-selector')?.addEventListener('change', (e) => {
+// Busca esta sección en tu init() y déjala así:
+document.getElementById('payment-selector')?.addEventListener('change', (e) => {
     AppState.currentCurrency = e.target.value;
+    
+    // Ocultar el hint si seguía visible
+    document.getElementById('currency-hint')?.classList.remove('show');
+    
     softRefreshProductGrid();
     updateCartUI();
-  });
+    
+    // Notificación visual de éxito
+    showToast(`Moneda cambiada a ${e.target.value}`);
+});  
 
 
   // ==========================================

@@ -1148,3 +1148,10 @@
     transform: translateX(-50%) translateY(0);
     opacity: 1;
 }
+
+.currency-hint.show {
+  opacity: 1;
+  visibility: visible; /* Asegúrate de que esto exista */
+  transform: translateY(0) scale(1);
+  animation: cloudFloat 3s ease-in-out infinite;
+}
